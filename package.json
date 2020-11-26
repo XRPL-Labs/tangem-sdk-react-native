@@ -1,0 +1,49 @@
+{
+  "name": "tangem-sdk-react-native",
+  "title": "React Native Tangem Sdk",
+  "version": "1.0.1",
+  "description": "React Native Tangem Sdk",
+  "types": "dist/index.d.ts",
+  "react-native": "dist/index",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "README.md",
+    "android",
+    "ios",
+    "RNTangemSdk.podspec"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XRPL-Labs/tangem-sdk-react-native.git",
+    "baseUrl": "https://github.com/XRPL-Labs/tangem-sdk-react-native"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android",
+    "tangem",
+    "sdk",
+    "rn"
+  ],
+  "author": {
+    "name": "N3TC4T",
+    "email": "netcat.av@gmail.com"
+  },
+  "license": "Dual license",
+  "licenseFilename": "LICENSE",
+  "readmeFilename": "README.md",
+  "peerDependencies": {
+    "react": "^16.8.1",
+    "react-native": ">=0.60.0-rc.0 <1.0.x"
+  },
+  "devDependencies": {
+    "@types/react": "^16.9.19",
+    "@types/react-native": "0.62.13",
+    "typescript": "^3.8.3"
+  }
+}
