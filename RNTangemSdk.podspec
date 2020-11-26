@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.description  = <<-DESC
                   RNTangemSdk
                    DESC
-  s.homepage     = "https://github.com/N3TC4T/tangem-sdk-react-native"
+  s.homepage     = "https://github.com/XRPL-Labs/tangem-sdk-react-native"
   # brief license entry:
   s.license      = "MIT"
   # optional - use expanded license entry instead:

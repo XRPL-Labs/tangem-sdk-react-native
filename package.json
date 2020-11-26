@@ -9,10 +9,15 @@
     "dist/**/*.js",
     "dist/**/*.js.map",
     "dist/**/*.d.ts",
-    "README.md",
-    "android",
-    "ios",
-    "RNTangemSdk.podspec"
+    "android/src",
+    "android/build.gradle",
+    "android/gradle.properties",
+    "ios/RNTangemSdk.xcodeproj/project.pbxproj",
+    "ios/**/*.h",
+    "ios/**/*.m",
+    "ios/**/*.swift",
+    "RNTangemSdk.podspec",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc"
