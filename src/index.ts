@@ -32,4 +32,8 @@ RNTangemSdk.removeListener = (
   }
 };
 
+// export all types
+export * from "./types";
+
+// export module
 export default RNTangemSdk as RNTangemSdkModule;
