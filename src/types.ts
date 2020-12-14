@@ -328,7 +328,7 @@ export type RNTangemSdkModule = {
   createWallet(cardId: string): Promise<CreateWalletResponse>;
   purgeWallet(cardId: string): Promise<PurgeWalletResponse>;
   sign(cardId: string, hashes: string[]): Promise<SignResponse>;
-  setPin1(cardId: string, pin: string): Promise<SetPinResponse>;
-  setPin2(cardId: string, pin: string): Promise<SetPinResponse>;
+  changePin1(cardId: string, pin: string): Promise<SetPinResponse>;
+  changePin2(cardId: string, pin: string): Promise<SetPinResponse>;
   getNFCStatus(): Promise<NFCStatusResponse>;
 };

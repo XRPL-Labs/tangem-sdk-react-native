@@ -216,9 +216,10 @@ RNTangemSdk.purgeWallet(cid);
 
 ```js
 var cid = "bb03000000000004";
+var pin = "123456"
 
 //TangemSdk.changePin1(cid);
-RNTangemSdk.changePin2(cid);
+RNTangemSdk.changePin2(cid, pin);
 ```
 
 
