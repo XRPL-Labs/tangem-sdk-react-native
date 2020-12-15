@@ -249,7 +249,7 @@ export interface Card {
    */
   cardData?: CardData;
 
-  sPin1Default?: boolean;
+  isPin1Default?: boolean;
 
   isPin2Default?: boolean;
 }
@@ -324,6 +324,8 @@ export type EventCallback = {
 };
 
 export type RNTangemSdkModule = {
+  startSession(): Promise<void>;
+  stopSession(): Promise<void>;
   scanCard(): Promise<Card>;
   createWallet(cardId: string): Promise<CreateWalletResponse>;
   purgeWallet(cardId: string): Promise<PurgeWalletResponse>;

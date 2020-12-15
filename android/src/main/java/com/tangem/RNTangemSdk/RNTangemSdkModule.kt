@@ -1,11 +1,17 @@
 package com.tangem.RNTangemSdk
 
 import android.app.Activity
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+
 import android.os.Handler
 import android.os.Looper
-import android.content.Context
-import android.content.IntentFilter
-import android.content.BroadcastReceiver
+import android.nfc.NfcAdapter
+
+import com.facebook.react.bridge.*
+import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
 
 import com.google.gson.JsonSyntaxException
 import com.squareup.sqldelight.android.AndroidSqliteDriver
@@ -22,19 +28,12 @@ import com.tangem.tangem_sdk_new.TerminalKeysStorage
 import com.tangem.tangem_sdk_new.extensions.localizedDescription
 import com.tangem.tangem_sdk_new.nfc.NfcManager
 
-import java.lang.ref.WeakReference
-import java.util.EnumSet
-import org.json.JSONObject
-
-import android.content.Intent
-import android.nfc.NfcAdapter
-import com.facebook.react.bridge.*
-
-import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
-
 import org.json.JSONArray
 import org.json.JSONException
+import org.json.JSONObject
 
+import java.lang.ref.WeakReference
+import java.util.EnumSet
 
 class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
     private lateinit var nfcManager: NfcManager
@@ -42,6 +41,8 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     private lateinit var sdk: TangemSdk
     private val handler = Handler(Looper.getMainLooper())
     private val converter = ResponseConverter()
+
+    private var sessionStarted = false
 
     override fun getName(): String {
         return "RNTangemSdk"
@@ -53,14 +54,13 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
         val activity = currentActivity
         wActivity = WeakReference(currentActivity)
 
-        activity?:let {
+        activity ?: let {
             return
         }
 
         nfcManager = NfcManager().apply {
             setCurrentActivity(activity)
         }
-
         cardManagerDelegate = DefaultSessionViewDelegate(nfcManager.reader).apply { this.activity = activity }
         val config = Config(cardFilter = CardFilter(EnumSet.of(CardType.Release)))
 
@@ -70,35 +70,72 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
         val keyStorage = TerminalKeysStorage(activity.application)
 
         sdk = TangemSdk(nfcManager.reader, cardManagerDelegate, config, valueStorage, keyStorage)
-
-        nfcManager.onStart()
     }
 
     override fun onHostResume() {
-        if(::nfcManager.isInitialized){
+        if (::nfcManager.isInitialized) {
             // check if activity is destroyed
             val activity = wActivity.get()
-            activity?:let {
+            activity ?: let {
                 return
             }
             // if activity destroyed initialize again
-            if(activity.isDestroyed() || activity.isFinishing() ) {
+            if (activity.isDestroyed() || activity.isFinishing()) {
                 initialize()
-            }else{
-                nfcManager.onStart()
+            } else {
+                if(sessionStarted){
+                    nfcManager.onStart()
+                }
             }
         }
     }
 
     override fun onHostPause() {
-        if(::nfcManager.isInitialized){
-            nfcManager.onStop()
+        if (::nfcManager.isInitialized) {
+            if(sessionStarted){
+                nfcManager.onStop()
+            }
         }
     }
 
     override fun onHostDestroy() {
-        if(::nfcManager.isInitialized){
+        if (::nfcManager.isInitialized) {
             nfcManager.onDestroy()
+        }
+    }
+
+
+    @ReactMethod
+    fun startSession(promise: Promise){
+        try {
+            if(::nfcManager.isInitialized){
+                nfcManager.onStart()
+
+                sessionStarted = true
+
+                promise.resolve()
+            }else{
+                promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
+            }
+        } catch (ex: Exception) {
+            promise.reject(ex)
+        }
+    }
+
+    @ReactMethod
+    fun stopSession(promise: Promise){
+        try {
+            if (::nfcManager.isInitialized) {
+                nfcManager.onDestroy()
+
+                sessionStarted = false
+
+                promise.resolve()
+            }else{
+                promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
+            }
+        } catch (ex: Exception) {
+            promise.reject(ex)
         }
     }
 
@@ -144,7 +181,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun changePin1(cid: String, pin: String, promise: Promise) {
         try {
-            sdk.changePin1(cid, pin.calculateSha256()) { handleResult(it, promise) }
+            sdk.changePin1(cid, if (pin.isBlank()) null else pin.calculateSha256()) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
@@ -153,7 +190,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun changePin2(cid: String, pin: String, promise: Promise) {
         try {
-            sdk.changePin2(cid, pin.calculateSha256()) { handleResult(it, promise) }
+            sdk.changePin2(cid, if (pin.isBlank()) null else pin.calculateSha256()) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
@@ -161,16 +198,16 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
 
     @ReactMethod
-    fun getNFCStatus(promise: Promise){
+    fun getNFCStatus(promise: Promise) {
         val nfcAdapter = NfcAdapter.getDefaultAdapter(reactContext)
 
         val payload = Arguments.createMap()
 
-        if(nfcAdapter != null){
+        if (nfcAdapter != null) {
             payload.putBoolean("support", true)
-            if(nfcAdapter.isEnabled){
+            if (nfcAdapter.isEnabled) {
                 payload.putBoolean("enabled", true)
-            }else{
+            } else {
                 payload.putBoolean("enabled", false)
             }
         } else {
@@ -222,6 +259,8 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
                 writableMap.putInt(key, jsonObject.getInt(key))
             } else if (value is String) {
                 writableMap.putString(key, jsonObject.getString(key))
+            } else if (value is Boolean) {
+                writableMap.putBoolean(key, jsonObject.getBoolean(key))
             } else if (value is JSONObject) {
                 writableMap.putMap(key, toWritableMap(jsonObject.getJSONObject(key)))
             } else if (value is JSONArray) {
@@ -245,6 +284,8 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
                 writableArray.pushInt(jsonArray.getInt(i))
             } else if (value is String) {
                 writableArray.pushString(jsonArray.getString(i))
+            } else if (value is Boolean) {
+                writableArray.pushBoolean(jsonArray.getBoolean(i))
             } else if (value is JSONObject) {
                 writableArray.pushMap(toWritableMap(jsonArray.getJSONObject(i)))
             } else if (value is JSONArray) {
@@ -298,10 +339,9 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     }
 
 
-
     companion object {
         lateinit var wActivity: WeakReference<Activity?>
     }
 
-    
+
 }

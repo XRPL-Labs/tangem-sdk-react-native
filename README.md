@@ -3,27 +3,31 @@
 The Tangem card is a self-custodial hardware wallet for blockchain assets. The main functions of Tangem cards are to securely create and store a private key from a blockchain wallet and sign blockchain transactions. The Tangem card does not allow users to import/export, backup/restore private keys, thereby guaranteeing that the wallet is unique and unclonable.
 
 - [Getting Started](#getting-started)
-	- [Requirements](#requirements)
-	- [Installation](#installation)
-        - [iOS Notes](#ios-notes)
-        - [Android Notes](#android-notes)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [iOS Notes](#ios-notes)
+  - [Android Notes](#android-notes)
 - [Usage](#usage)
-	- [Scan card](#scan-card)
-	- [Sign](#sign)
+  - [Scan card](#scan-card)
+  - [Sign](#sign)
     - [Wallet](#wallet)
-        - [Create Wallet](#create-wallet)
-        - [Purge Wallet](#purge-wallet)
-    - [PIN codes](#pin-codes)  
-    - [NFC Status](#nfc-status)  
+      - [Create Wallet](#create-wallet)
+      - [Purge Wallet](#purge-wallet)
+    - [PIN codes](#pin-codes)
+    - [NFC Status](#nfc-status)
+- [Troubleshooting](#troubleshooting)
 
 ## Getting Started
 
 ### Requirements
+
 #### iOS
+
 iOS 11+ (CoreNFC is required), Xcode 11+
 SDK can be imported to iOS 11, but it will work only since iOS 13.
 
 #### Android
+
 Android with minimal SDK version of 21 and a device with NFC support
 
 ## Installation
@@ -32,9 +36,9 @@ Android with minimal SDK version of 21 and a device with NFC support
 npm install tangem-sdk-react-native
 ```
 
-
 #### Android Notes
-Add the following intent filters and metadata tag to your app ``AndroidManifest.xml``
+
+Add the following intent filters and metadata tag to your app `AndroidManifest.xml`
 
 ```xml
 <intent-filter>
@@ -140,7 +144,8 @@ LIBRARY_SEARCH_PATHS = (
 
 3) Configure your app to detect NFC tags. Turn on Near Field Communication Tag Reading under the Capabilities tab for the project’s target (see [Add a capability to a target](https://help.apple.com/xcode/mac/current/#/dev88ff319e7)).
 
-4) Add the [NFCReaderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nfcreaderusagedescription) key as a string item to the Info.plist file. For the value, enter a string that describes the reason the app needs access to the device’s NFC reader: 
+4) Add the [NFCReaderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nfcreaderusagedescription) key as a string item to the Info.plist file. For the value, enter a string that describes the reason the app needs access to the device’s NFC reader:
+
 ```xml
 <key>NFCReaderUsageDescription</key>
 <string>Some reason</string>
@@ -158,7 +163,7 @@ LIBRARY_SEARCH_PATHS = (
 
 6) To prevent customers from installing apps on a device that does not support the NFC capability, add the following to the Info.plist code (Optional):
 
- ```xml
+```xml
 <key>UIRequiredDeviceCapabilities</key>
 <array>
     <string>nfc</string>
@@ -166,34 +171,48 @@ LIBRARY_SEARCH_PATHS = (
 ```
 
 ## Usage
+
 Tangem SDK is a self-sufficient solution that implements a card abstraction model, methods of interaction with the card and interactions with the user via UI.
 
 The easiest way to use the SDK is to call basic methods. The basic method performs one or more operations and, after that, calls completion block with success or error.
 
 When calling basic methods, there is no need to show the error to the user, since it will be displayed on the NFC popup before it's hidden.
 
+#### Start/Stop Session [Android]
+
+Method `RNTangemSdk.startSession()` is needed before running any other method in android, calling this method will ask the user to enable the NFC in case of NFC disabled.
+
+```js
+RNTangemSdk.startSession();
+```
+
+> It's recommended to check for NFC status before running any other method and call this function again in case of disabled NFC
+
 #### Scan card
+
 Method `RNTangemSdk.scanCard()` is needed to obtain information from the Tangem card. Optionally, if the card contains a wallet (private and public key pair), it proves that the wallet owns a private key that corresponds to a public one.
 
 ```js
-RNTangemSdk.scanCard()
+RNTangemSdk.scanCard();
 ```
 
-
 #### Sign
+
 Method `RNTangemSdk.sign()` allows you to sign one or multiple hashes. The SIGN command will return a corresponding array of signatures.
 
 ```js
 const cid = "bb03000000000004";
 
 RNTangemSdk.sign(cid, [
-                "44617461207573656420666f722068617368696e67",
-                "4461746120666f7220757365642068617368696e67"
-            ])
+  "44617461207573656420666f722068617368696e67",
+  "4461746120666f7220757365642068617368696e67",
+]);
 ```
 
 #### Wallet
+
 ##### Create Wallet
+
 Method `RNTangemSdk.createWallet()` will create a new wallet on the card. A key pair `WalletPublicKey` / `WalletPrivateKey` is generated and securely stored in the card.
 
 ```js
@@ -202,6 +221,7 @@ RNTangemSdk.createWallet(cid);
 ```
 
 ##### Purge Wallet
+
 Method `RNTangemSdk.purgeWallet()` deletes all wallet data.
 
 ```js
@@ -209,35 +229,59 @@ var cid = "bb03000000000004";
 RNTangemSdk.purgeWallet(cid);
 ```
 
-
 #### Pin codes
-*Access code (PIN1)* restricts access to the whole card. App must submit the correct value of Access code in each command. 
-*Passcode (PIN2)* is required to sign a transaction or to perform some other commands entailing a change of the card state.
+
+_Access code (PIN1)_ restricts access to the whole card. App must submit the correct value of Access code in each command.
+_Passcode (PIN2)_ is required to sign a transaction or to perform some other commands entailing a change of the card state.
 
 ```js
 var cid = "bb03000000000004";
-var pin = "123456"
+var pin = "123456";
 
 //TangemSdk.changePin1(cid);
 RNTangemSdk.changePin2(cid, pin);
 ```
 
+> Passing empty string as PIN will trigger SDK dialog for entering the PIN code by user
 
 #### NFC Status
+
 ##### Get status
-Method `RNTangemSdk.getNFCStatus()` will return current NFC Status which is supported on the device or is NFC enabled on the device, in android calling this method will ask the user to enable the NFC in case of NFC disabled.
+
+Method `RNTangemSdk.getNFCStatus()` will return current NFC Status which is supported on the device or is NFC enabled on the device.
 
 ```js
 RNTangemSdk.getNFCStatus();
 ```
 
 ##### Listen on events
+
 with `RNTangemSdk.on()` and `RNTangemSdk.removeListener()` you should be able to add/remove listener on the certain events
 
-Supported Events: ```NFCStateChange```
+Supported Events: `NFCStateChange`
 
 ```js
-RNTangemSdk.on('NFCStateChange', (enabled) => {
-    console.log(enabled)
+RNTangemSdk.on("NFCStateChange", (enabled) => {
+  console.log(enabled);
 });
+```
+
+## Troubleshooting
+
+#### Errors when sending HTTP/S requests throght `fetch` function
+
+##### Error message
+
+```sh
+No static method delimiterOffset(Ljava/lang/String;IILjava/lang/String;)I in class Lokhttp3/internal/Util; or its super classes (declaration of 'okhttp3.internal.Util' appears in base.apk!classes3.dex)
+```
+
+##### Solution
+
+Include this dependencies in `android/app/build.gradle` file in `dependencies` section
+
+```java
+implementation "com.squareup.okhttp3:okhttp:4.2.1"
+implementation "com.squareup.okhttp3:logging-interceptor:4.2.1"
+implementation "com.squareup.okhttp3:okhttp-urlconnection:4.2.1"
 ```

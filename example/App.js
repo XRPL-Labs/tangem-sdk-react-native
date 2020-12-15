@@ -24,11 +24,15 @@ export default class App extends Component<{}> {
   };
 
   componentDidMount() {
+    // start the session
+    RNTangemSdk.startSession();
+
     // on nfc state change (Android)
-    RNTangemSdk.on('NFCStateChange', (enabled) => {
+    RNTangemSdk.on('NFCStateChange', ({enabled}) => {
       this.setState({
         status: {
           enabled,
+          support: true,
         },
       });
     });
@@ -39,6 +43,11 @@ export default class App extends Component<{}> {
         status,
       });
     });
+  }
+
+  componentWillUnmount() {
+    // stop the session
+    RNTangemSdk.stopSession();
   }
 
   onSuccess = (r) => {

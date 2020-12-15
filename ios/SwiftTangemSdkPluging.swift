@@ -17,6 +17,19 @@ class RNTangemSdk: NSObject {
         return TangemSdk()
     }()
     
+    @objc func startSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            resolve()
+        }
+    }
+    
+    @objc func stopSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            resolve()
+        }
+    }
+
+    
     @objc func scanCard(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             self.sdk.scanCard () { [weak self] result in self?.handleCompletion(result, resolve, reject) }
@@ -45,13 +58,13 @@ class RNTangemSdk: NSObject {
 
     @objc func changePin1(_ cid: String, pin: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            self.sdk.changePin1(cardId: cid, pin: pin.sha256()) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            self.sdk.changePin1(cardId: cid, pin: pin.isEmpty ? nil : pin.sha256()) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
 
     @objc func changePin2(_ cid: String, pin: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            self.sdk.changePin2(cardId: cid, pin: pin.sha256()) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            self.sdk.changePin2(cardId: cid, pin: pin.isEmpty ? nil : pin.sha256()) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
