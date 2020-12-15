@@ -19,13 +19,13 @@ class RNTangemSdk: NSObject {
     
     @objc func startSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            resolve()
+            resolve(nil)
         }
     }
     
     @objc func stopSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            resolve()
+            resolve(nil)
         }
     }
 

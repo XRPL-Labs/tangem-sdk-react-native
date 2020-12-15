@@ -333,4 +333,6 @@ export type RNTangemSdkModule = {
   changePin1(cardId: string, pin: string): Promise<SetPinResponse>;
   changePin2(cardId: string, pin: string): Promise<SetPinResponse>;
   getNFCStatus(): Promise<NFCStatusResponse>;
+  on(eventName: Events, handler: (state: EventCallback) => void): void;
+  removeListener(eventName: Events, handler: (state: EventCallback) => void): void;
 };
