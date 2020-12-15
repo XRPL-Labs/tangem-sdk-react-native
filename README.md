@@ -185,14 +185,13 @@ Method `RNTangemSdk.startSession()` is needed before running any other method in
 ```js
 RNTangemSdk.startSession();
 ```
+> It's recommended to check for NFC status before running any other method and call this method again in case of disabled NFC
 
 Method `RNTangemSdk.stopSession()` will stop NFC Manager and it's recommended to be called to stop the session.
 
 ```js
 RNTangemSdk.stopSession();
 ```
-
-> It's recommended to check for NFC status before running any other method and call this method again in case of disabled NFC
 
 #### Scan card
 
