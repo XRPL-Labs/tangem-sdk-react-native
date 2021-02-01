@@ -108,14 +108,19 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun startSession(promise: Promise){
         try {
-            if(::nfcManager.isInitialized){
-                nfcManager.onStart()
+            if(!sessionStarted){
+                if(::nfcManager.isInitialized){
+                    nfcManager.onStart()
 
-                sessionStarted = true
+                    sessionStarted = true
 
-                promise.resolve(null)
+                    promise.resolve(null)
+                }else{
+                    promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
+                }
             }else{
-                promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
+                // session already started
+                promise.resolve(null)
             }
         } catch (ex: Exception) {
             promise.reject(ex)
@@ -125,14 +130,19 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun stopSession(promise: Promise){
         try {
-            if (::nfcManager.isInitialized) {
-                nfcManager.onStop()
+            if (sessionStarted) {
+                if(::nfcManager.isInitialized) {
+                    nfcManager.onStop()
 
-                sessionStarted = false
+                    sessionStarted = false
 
-                promise.resolve(null)
+                    promise.resolve(null)
+                }else{
+                    promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
+                }
             }else{
-                promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
+                // session already stopped
+                promise.resolve(null)
             }
         } catch (ex: Exception) {
             promise.reject(ex)
