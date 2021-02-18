@@ -39,7 +39,7 @@
     "name": "N3TC4T",
     "email": "netcat.av@gmail.com"
   },
-  "license": "Dual license",
+  "license": "MIT",
   "licenseFilename": "LICENSE",
   "readmeFilename": "README.md",
   "peerDependencies": {
