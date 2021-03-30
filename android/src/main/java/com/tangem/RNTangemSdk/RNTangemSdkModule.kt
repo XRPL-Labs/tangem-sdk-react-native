@@ -16,13 +16,19 @@ import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEm
 import com.google.gson.JsonSyntaxException
 import com.squareup.sqldelight.android.AndroidSqliteDriver
 
-import com.tangem.*
+import com.tangem.TangemSdk
+import com.tangem.CardFilter
+import com.tangem.Config
+import com.tangem.Database
+import com.tangem.Message
+import com.tangem.TangemSdkError
+import com.tangem.commands.WalletIndex
 import com.tangem.commands.common.ResponseConverter
 import com.tangem.common.CardValuesDbStorage
 import com.tangem.common.CompletionResult
-import com.tangem.common.extensions.CardType
 import com.tangem.common.extensions.calculateSha256
 import com.tangem.common.extensions.hexToBytes
+import com.tangem.commands.common.card.FirmwareType
 import com.tangem.tangem_sdk_new.DefaultSessionViewDelegate
 import com.tangem.tangem_sdk_new.TerminalKeysStorage
 import com.tangem.tangem_sdk_new.extensions.localizedDescription
@@ -61,10 +67,10 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
         nfcManager = NfcManager().apply {
             setCurrentActivity(activity)
         }
-        cardManagerDelegate = DefaultSessionViewDelegate(nfcManager.reader).apply { this.activity = activity }
-        val config = Config(cardFilter = CardFilter(EnumSet.of(CardType.Release)))
+        cardManagerDelegate = DefaultSessionViewDelegate(nfcManager, nfcManager.reader).apply { this.activity = activity }
+        val config = Config(cardFilter = CardFilter(EnumSet.of(FirmwareType.Release)))
 
-        val valueStorage = CardValuesDbStorage(AndroidSqliteDriver(Database.Schema, activity.application,
+        val valueStorage = CardValuesDbStorage(AndroidSqliteDriver(Database.Schema, activity.applicationContext,
                 "rn_cards.db"))
 
         val keyStorage = TerminalKeysStorage(activity.application)
@@ -83,7 +89,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             if (activity.isDestroyed() || activity.isFinishing()) {
                 initialize()
             } else {
-                if(sessionStarted){
+                if (sessionStarted) {
                     nfcManager.onStart()
                 }
             }
@@ -92,7 +98,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
     override fun onHostPause() {
         if (::nfcManager.isInitialized) {
-            if(sessionStarted){
+            if (sessionStarted) {
                 nfcManager.onStop()
             }
         }
@@ -106,19 +112,19 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
 
     @ReactMethod
-    fun startSession(promise: Promise){
+    fun startSession(promise: Promise) {
         try {
-            if(!sessionStarted){
-                if(::nfcManager.isInitialized){
+            if (!sessionStarted) {
+                if (::nfcManager.isInitialized) {
                     nfcManager.onStart()
 
                     sessionStarted = true
 
                     promise.resolve(null)
-                }else{
+                } else {
                     promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
                 }
-            }else{
+            } else {
                 // session already started
                 promise.resolve(null)
             }
@@ -128,19 +134,19 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     }
 
     @ReactMethod
-    fun stopSession(promise: Promise){
+    fun stopSession(promise: Promise) {
         try {
             if (sessionStarted) {
-                if(::nfcManager.isInitialized) {
+                if (::nfcManager.isInitialized) {
                     nfcManager.onStop()
 
                     sessionStarted = false
 
                     promise.resolve(null)
-                }else{
+                } else {
                     promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
                 }
-            }else{
+            } else {
                 // session already stopped
                 promise.resolve(null)
             }
@@ -151,37 +157,57 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
 
     @ReactMethod
-    fun scanCard(promise: Promise) {
+    fun scanCard(options: ReadableMap, promise: Promise) {
         try {
-            sdk.scanCard { handleResult(it, promise) }
+            val args = options.toHashMap()
+            sdk.scanCard(
+                    walletIndex = this.getArg("walletIndex", args) as WalletIndex?,
+                    initialMessage = this.getArg("initialMessage", args) as Message?
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
     }
 
     @ReactMethod
-    fun createWallet(cid: String, promise: Promise) {
+    fun createWallet(options: ReadableMap, promise: Promise) {
         try {
-            sdk.createWallet(cid) { handleResult(it, promise) }
+            val args = options.toHashMap()
+            sdk.createWallet(
+                    cardId = this.getArg("cardId", args) as String?,
+                    walletIndex = this.getArg("walletIndex", args) as Int?,
+                    initialMessage = this.getArg("initialMessage", args) as Message?
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
     }
 
     @ReactMethod
-    fun purgeWallet(cid: String, promise: Promise) {
+    fun purgeWallet(options: ReadableMap, promise: Promise) {
         try {
-            sdk.purgeWallet(cid) { handleResult(it, promise) }
+            val args = options.toHashMap()
+            sdk.purgeWallet(
+                    cardId = this.getArg("cardId", args) as String?,
+                    walletIndex = WalletIndex.Index(this.getArg("walletIndex", args, 0) as Int) as WalletIndex,
+                    initialMessage = this.getArg("initialMessage", args) as Message?
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
     }
 
     @ReactMethod
-    fun sign(cid: String, hashes: ReadableArray, promise: Promise) {
+    fun sign(hashes: ReadableArray, options: ReadableMap, promise: Promise) {
         try {
+            val args = options.toHashMap()
             val hexHashes = hashes.toArrayList().map { it.toString().hexToBytes() }.toTypedArray()
-            sdk.sign(hexHashes, cid) { handleResult(it, promise) }
+            sdk.sign(
+                    hashes = hexHashes,
+                    cardId = this.getArg("cardId", args) as String?,
+                    walletIndex = WalletIndex.Index(this.getArg("walletIndex", args, 0) as Int) as WalletIndex,
+                    initialMessage = this.getArg("initialMessage", args) as Message?
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
@@ -189,18 +215,30 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
 
     @ReactMethod
-    fun changePin1(cid: String, pin: String, promise: Promise) {
+    fun changePin1(options: ReadableMap, promise: Promise) {
         try {
-            sdk.changePin1(cid, if (pin.isBlank()) null else pin.calculateSha256()) { handleResult(it, promise) }
+            val args = options.toHashMap()
+            val pin = this.getArg("pin", args, "") as String
+            sdk.changePin1(
+                    cardId = this.getArg("cardId", args) as String?,
+                    pin = if (pin.isBlank()) null else pin.calculateSha256(),
+                    initialMessage = this.getArg("initialMessage", args) as Message?
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
     }
 
     @ReactMethod
-    fun changePin2(cid: String, pin: String, promise: Promise) {
+    fun changePin2(options: ReadableMap, promise: Promise) {
         try {
-            sdk.changePin2(cid, if (pin.isBlank()) null else pin.calculateSha256()) { handleResult(it, promise) }
+            val args = options.toHashMap()
+            val pin = this.getArg("pin", args, "") as String
+            sdk.changePin2(
+                    cardId = this.getArg("cardId", args) as String?,
+                    pin = if (pin.isBlank()) null else pin.calculateSha256(),
+                    initialMessage = this.getArg("initialMessage", args) as Message?
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
@@ -308,6 +346,24 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     }
 
 
+    private fun getArg(key: String, args: HashMap<String, Any>, defaultValue: Any? = null): Any? {
+        if (args.containsKey(key)) {
+            if (key === "initialMessage") {
+                if (args[key] !is HashMap<*, *>) {
+                    return null
+                }
+                val message = args["initialMessage"] as HashMap<*, *>
+                return Message(
+                        header = message["header"] as String?,
+                        body = message["body"] as String?
+                )
+            }
+            return args[key]
+        }
+        return defaultValue
+    }
+
+
     private fun normalizeResponse(resp: Any?): WritableMap {
         val jsonString = converter.gson.toJson(resp)
         val jsonObject = JSONObject(jsonString)
@@ -323,7 +379,8 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             is CompletionResult.Failure<*> -> {
                 val error = completionResult.error
                 val errorMessage = if (error is TangemSdkError) {
-                    wActivity.get()?.getString(error.localizedDescription()) ?: error.customMessage
+                    val activity = wActivity.get()
+                    if (activity == null) error.customMessage else error.localizedDescription(activity)
                 } else {
                     error.customMessage
                 }

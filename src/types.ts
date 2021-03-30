@@ -323,16 +323,85 @@ export type EventCallback = {
   enabled: boolean;
 };
 
+export type InitialMessage = {
+  header?: string;
+  body?: string;
+};
+
+/**
+ * Commands type
+ */
+export interface OptionsCommon {
+  /**
+   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
+   */
+  initialMessage?: InitialMessage;
+  /**
+   * Index to wallet which data should be read.  if not specified - wallet at default index will be read. See `WalletIndex` for more info
+   */
+  walletIndex?: number;
+  /**
+   * cardId: CID, Unique Tangem card ID number.
+   */
+  cardId?: string;
+  /**
+   * PIN1 string. Hash will be calculated automatically. If nil, the default PIN1 value will be used
+   */
+  pin1?: string;
+  /**
+   * PIN2 string. Hash will be calculated automatically. If nil, the default PIN2 value will be used
+   */
+  pin2?: string;
+}
+
+export interface OptionsScanCard {
+  /**
+   * Verify the card offline and online with Tangem backend. Do not use for developer cards
+   * #### (iOS specific)
+   */
+  onlineVerification?: boolean;
+  /**
+   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
+   */
+  initialMessage?: InitialMessage;
+  /**
+   * Index to wallet which data should be read.  if not specified - wallet at default index will be read. See `WalletIndex` for more info
+   */
+  walletIndex?: number;
+  /**
+   * PIN1 string. Hash will be calculated automatically. If nil, the default PIN1 value will be used
+   */
+  pin1?: string;
+}
+
+export interface OptionsChangePin {
+  /**
+   * cardId: CID, Unique Tangem card ID number.
+   */
+  cardId?: string;
+  /**
+   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
+   */
+  initialMessage?: InitialMessage;
+  /**
+   * PIN1 string. Hash will be calculated automatically. If nil, the default PIN value will be used
+   */
+  pin?: string;
+}
+
 export type RNTangemSdkModule = {
   startSession(): Promise<void>;
   stopSession(): Promise<void>;
-  scanCard(): Promise<Card>;
-  createWallet(cardId: string): Promise<CreateWalletResponse>;
-  purgeWallet(cardId: string): Promise<PurgeWalletResponse>;
-  sign(cardId: string, hashes: string[]): Promise<SignResponse>;
-  changePin1(cardId: string, pin: string): Promise<SetPinResponse>;
-  changePin2(cardId: string, pin: string): Promise<SetPinResponse>;
+  scanCard(options?: OptionsScanCard): Promise<Card>;
+  createWallet(options?: OptionsCommon): Promise<CreateWalletResponse>;
+  purgeWallet(options?: OptionsCommon): Promise<PurgeWalletResponse>;
+  sign(hashes: string[], options?: OptionsCommon): Promise<SignResponse>;
+  changePin1(options?: OptionsChangePin): Promise<SetPinResponse>;
+  changePin2(options?: OptionsChangePin): Promise<SetPinResponse>;
   getNFCStatus(): Promise<NFCStatusResponse>;
   on(eventName: Events, handler: (state: EventCallback) => void): void;
-  removeListener(eventName: Events, handler: (state: EventCallback) => void): void;
+  removeListener(
+    eventName: Events,
+    handler: (state: EventCallback) => void
+  ): void;
 };

@@ -17,54 +17,74 @@ class RNTangemSdk: NSObject {
         return TangemSdk()
     }()
     
-    @objc func startSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc func scanCard(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            resolve(nil)
+            self.sdk.scanCard (
+                onlineVerification: self.getArg("onlineVerification", args: options, defaultValue: true) as! Bool,
+                walletIndex: WalletIndex.index(self.getArg("walletIndex", args: options, defaultValue: 0) as! Int),
+                initialMessage: self.getArg("initialMessage", args: options) as? Message,
+                pin1: self.getArg("pin1", args: options) as? String
+            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
-    @objc func stopSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        DispatchQueue.main.async {
-            resolve(nil)
-        }
-    }
-
     
-    @objc func scanCard(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc func createWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            self.sdk.scanCard () { [weak self] result in self?.handleCompletion(result, resolve, reject) }
-        }
-    }
-
-    
-    @objc func createWallet(_ cid: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        DispatchQueue.main.async {
-            self.sdk.createWallet(cardId: cid) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            self.sdk.createWallet(
+                cardId: self.getArg("cardId", args: options) as? String,
+                walletIndex: self.getArg("walletIndex", args: options, defaultValue: 0) as? Int,
+                initialMessage: self.getArg("initialMessage", args: options) as? Message,
+                pin1: self.getArg("pin1", args: options) as? String,
+                pin2: self.getArg("pin2", args: options) as? String
+            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
-    @objc func purgeWallet(_ cid: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc func purgeWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            self.sdk.purgeWallet(cardId: cid) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            self.sdk.purgeWallet(
+                cardId: self.getArg("cardId", args: options) as? String,
+                walletIndex: WalletIndex.index(self.getArg("walletIndex", args: options, defaultValue: 0) as! Int),
+                initialMessage: self.getArg("initialMessage", args: options) as? Message,
+                pin1: self.getArg("pin1", args: options) as? String,
+                pin2: self.getArg("pin2", args: options) as? String
+            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
-    @objc func sign(_ cid: String, hashes: [String], resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc func sign(_ hashes: [String], options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            let hexHashes = hashes.compactMap({Data(hexString: $0)})
-            self.sdk.sign(hashes: hexHashes, cardId: cid) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            self.sdk.sign(
+                hashes: hashes.compactMap({Data(hexString: $0)}),
+                cardId: self.getArg("cardId", args: options) as? String,
+                walletIndex: WalletIndex.index(self.getArg("walletIndex", args: options, defaultValue: 0) as! Int),
+                initialMessage: self.getArg("initialMessage", args: options) as? Message,
+                pin1: self.getArg("pin1", args: options) as? String,
+                pin2: self.getArg("pin2", args: options) as? String
+            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
-
-    @objc func changePin1(_ cid: String, pin: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    
+    @objc func changePin1(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        let pin = self.getArg("pin", args: options, defaultValue: "") as! String
         DispatchQueue.main.async {
-            self.sdk.changePin1(cardId: cid, pin: pin.isEmpty ? nil : pin.sha256()) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            self.sdk.changePin1(
+                cardId: self.getArg("cardId", args: options) as? String,
+                pin: pin.isEmpty ? nil : pin.sha256(),
+                initialMessage: self.getArg("initialMessage", args: options) as? Message
+            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
-
-    @objc func changePin2(_ cid: String, pin: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    
+    @objc func changePin2(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        let pin = self.getArg("pin", args: options, defaultValue: "") as! String
         DispatchQueue.main.async {
-            self.sdk.changePin2(cardId: cid, pin: pin.isEmpty ? nil : pin.sha256()) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            self.sdk.changePin2(
+                cardId: self.getArg("cardId", args: options) as? String,
+                pin: pin.isEmpty ? nil : pin.sha256(),
+                initialMessage: self.getArg("initialMessage", args: options) as? Message
+            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
@@ -83,7 +103,24 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    private func handleCompletion<TResult: ResponseCodable>(_ sdkResult: Result<TResult, TangemSdkError>, _ resolve: RCTPromiseResolveBlock, _ reject: RCTPromiseRejectBlock) {
+    
+    private func getArg(_ key: String, args: NSDictionary?, defaultValue:Any? = nil) -> Any? {
+        if let unwrappedArgs = args {
+            if(key == "initialMessage"){
+                let message = unwrappedArgs.object(forKey: key) as? NSDictionary
+                if let unwrappedMessage = message {
+                    return Message(
+                        header: unwrappedMessage.object(forKey: "header") as? String,
+                        body: unwrappedMessage.object(forKey: "body") as? String
+                    )
+                }
+            }
+            return unwrappedArgs.object(forKey: key) ?? defaultValue
+        }
+        return defaultValue
+    }
+    
+    private func handleCompletion<TResult: JSONStringConvertible>(_ sdkResult: Result<TResult, TangemSdkError>, _ resolve: RCTPromiseResolveBlock, _ reject: RCTPromiseRejectBlock) {
         switch sdkResult {
         case .success(let response):
             guard let data = response.description.data(using: .utf8) else { resolve({}); break }
@@ -94,7 +131,7 @@ class RNTangemSdk: NSObject {
             reject("\(pluginError.code)", pluginError.localizedDescription, nil)
         }
     }
-
+    
     private func handleSignError(reject: RCTPromiseRejectBlock) {
         reject("9998", "Failed to sign data", nil)
     }
@@ -102,7 +139,7 @@ class RNTangemSdk: NSObject {
 fileprivate struct PluginError: Encodable {
     let code: Int
     let localizedDescription: String
-
+    
     var jsonDescription: String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .prettyPrinted]

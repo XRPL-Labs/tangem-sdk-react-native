@@ -9,7 +9,7 @@
  */
 
 import React, {Component} from 'react';
-import {StyleSheet, Text, View, Button, ScrollView, Alert} from 'react-native';
+import {StyleSheet, Text, View, Button, ScrollView} from 'react-native';
 
 import RNTangemSdk from 'tangem-sdk-react-native';
 
@@ -63,80 +63,40 @@ export default class App extends Component<{}> {
   };
 
   scanCard = () => {
-    RNTangemSdk.scanCard()
-      .then((r) => {
-        this.setState({
-          card: r,
-        });
-
-        this.onSuccess(r);
-      })
+    RNTangemSdk.scanCard({
+      onlineVerification: false,
+    })
+      .then(this.onSuccess)
       .catch(this.onError);
   };
 
   createWallet = () => {
-    const {card} = this.state;
-    if (!card) {
-      return Alert.alert('Scan the card first');
-    }
-    const {cardId} = card;
-    RNTangemSdk.createWallet(cardId).then(this.onSuccess).catch(this.onError);
+    RNTangemSdk.createWallet().then(this.onSuccess).catch(this.onError);
   };
 
   purgeWallet = () => {
-    const {card} = this.state;
-    if (!card) {
-      return Alert.alert('Scan the card first');
-    }
-    const {cardId} = card;
-    RNTangemSdk.purgeWallet(cardId).then(this.onSuccess).catch(this.onError);
+    RNTangemSdk.purgeWallet().then(this.onSuccess).catch(this.onError);
   };
 
   changePin1 = () => {
-    const {card} = this.state;
-
     // for reset the pinCode set it to '000000'
-    const pin1 = '111';
-
-    if (!card) {
-      return Alert.alert('Scan the card first');
-    }
-
-    const {cardId} = card;
-
-    RNTangemSdk.changePin1(cardId, pin1)
-      .then(this.onSuccess)
-      .catch(this.onError);
+    // const pin1 = '111';
+    RNTangemSdk.changePin1().then(this.onSuccess).catch(this.onError);
   };
 
   changePin2 = () => {
-    const {card} = this.state;
-
     // for reset the pinCode set it to '000'
-    const pin2 = '222';
-
-    if (!card) {
-      return Alert.alert('Scan the card first');
-    }
-
-    const {cardId} = card;
-
-    RNTangemSdk.changePin2(cardId, pin2)
-      .then(this.onSuccess)
-      .catch(this.onError);
+    // const pin2 = '000';
+    RNTangemSdk.changePin2().then(this.onSuccess).catch(this.onError);
   };
 
   sign = () => {
-    const {card} = this.state;
-
     const hashes = [
       '44617461207573656420666f722068617368696e67',
       '4461746120666f7220757365642068617368696e67',
     ];
 
-    const {cardId} = card;
-
-    RNTangemSdk.sign(cardId, hashes).then(this.onSuccess).catch(this.onError);
+    RNTangemSdk.sign(hashes).then(this.onSuccess).catch(this.onError);
   };
 
   render() {

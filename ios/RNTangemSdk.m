@@ -9,14 +9,12 @@
 #import <Foundation/Foundation.h>
 
 @interface RCT_EXTERN_MODULE(RNTangemSdk, NSObject)
-RCT_EXTERN_METHOD(startSession:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(stopSession:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(scanCard:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(createWallet:(NSString *)cid resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(purgeWallet:(NSString *)cid resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(changePin1:(NSString *)cid pin:(NSString *)pin resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(changePin2:(NSString *)cid pin:(NSString *)pin resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(sign:(NSString *)cid hashes:(NSArray<NSString *>*)hashes resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(scanCard:(NSDictionary)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(createWallet:(NSDictionary)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(purgeWallet:(NSDictionary)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(changePin1:(NSDictionary)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(changePin2:(NSDictionary)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(sign:(NSArray<NSString *>*)hashes options:(NSDictionary)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getNFCStatus:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
 + (BOOL)requiresMainQueueSetup{
