@@ -5,35 +5,30 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-
+import android.nfc.NfcAdapter
 import android.os.Handler
 import android.os.Looper
-import android.nfc.NfcAdapter
-
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
-
 import com.google.gson.JsonSyntaxException
 import com.squareup.sqldelight.android.AndroidSqliteDriver
-
 import com.tangem.*
+import com.tangem.commands.WalletIndex
 import com.tangem.commands.common.ResponseConverter
+import com.tangem.commands.common.card.FirmwareType
 import com.tangem.common.CardValuesDbStorage
 import com.tangem.common.CompletionResult
-import com.tangem.common.extensions.CardType
 import com.tangem.common.extensions.calculateSha256
 import com.tangem.common.extensions.hexToBytes
 import com.tangem.tangem_sdk_new.DefaultSessionViewDelegate
 import com.tangem.tangem_sdk_new.TerminalKeysStorage
 import com.tangem.tangem_sdk_new.extensions.localizedDescription
 import com.tangem.tangem_sdk_new.nfc.NfcManager
-
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-
 import java.lang.ref.WeakReference
-import java.util.EnumSet
+import java.util.*
 
 class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
     private lateinit var nfcManager: NfcManager
@@ -61,10 +56,10 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
         nfcManager = NfcManager().apply {
             setCurrentActivity(activity)
         }
-        cardManagerDelegate = DefaultSessionViewDelegate(nfcManager.reader).apply { this.activity = activity }
-        val config = Config(cardFilter = CardFilter(EnumSet.of(CardType.Release)))
+        cardManagerDelegate = DefaultSessionViewDelegate(nfcManager, nfcManager.reader).apply { this.activity = activity }
+        val config = Config(cardFilter = CardFilter(EnumSet.of(FirmwareType.Release)))
 
-        val valueStorage = CardValuesDbStorage(AndroidSqliteDriver(Database.Schema, activity.application,
+        val valueStorage = CardValuesDbStorage(AndroidSqliteDriver(Database.Schema, activity.applicationContext,
                 "rn_cards.db"))
 
         val keyStorage = TerminalKeysStorage(activity.application)
@@ -83,7 +78,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             if (activity.isDestroyed() || activity.isFinishing()) {
                 initialize()
             } else {
-                if(sessionStarted){
+                if (sessionStarted) {
                     nfcManager.onStart()
                 }
             }
@@ -92,7 +87,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
     override fun onHostPause() {
         if (::nfcManager.isInitialized) {
-            if(sessionStarted){
+            if (sessionStarted) {
                 nfcManager.onStop()
             }
         }
@@ -106,19 +101,19 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
 
     @ReactMethod
-    fun startSession(promise: Promise){
+    fun startSession(promise: Promise) {
         try {
-            if(!sessionStarted){
-                if(::nfcManager.isInitialized){
+            if (!sessionStarted) {
+                if (::nfcManager.isInitialized) {
                     nfcManager.onStart()
 
                     sessionStarted = true
 
                     promise.resolve(null)
-                }else{
+                } else {
                     promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
                 }
-            }else{
+            } else {
                 // session already started
                 promise.resolve(null)
             }
@@ -128,19 +123,19 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     }
 
     @ReactMethod
-    fun stopSession(promise: Promise){
+    fun stopSession(promise: Promise) {
         try {
             if (sessionStarted) {
-                if(::nfcManager.isInitialized) {
+                if (::nfcManager.isInitialized) {
                     nfcManager.onStop()
 
                     sessionStarted = false
 
                     promise.resolve(null)
-                }else{
+                } else {
                     promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
                 }
-            }else{
+            } else {
                 // session already stopped
                 promise.resolve(null)
             }
@@ -151,37 +146,71 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
 
     @ReactMethod
-    fun scanCard(promise: Promise) {
+    fun scanCard(options: ReadableMap, promise: Promise) {
         try {
-            sdk.scanCard { handleResult(it, promise) }
+            val optionsParser = OptionsParser(options)
+            sdk.scanCard(
+                    walletIndex = optionsParser.getWalletIndex().second,
+                    initialMessage = optionsParser.getInitialMessage()
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
     }
 
     @ReactMethod
-    fun createWallet(cid: String, promise: Promise) {
+    fun verifyCard(options: ReadableMap, promise: Promise) {
         try {
-            sdk.createWallet(cid) { handleResult(it, promise) }
+            val optionsParser = OptionsParser(options)
+            sdk.verify(
+                    cardId = optionsParser.getCardId(),
+                    online = optionsParser.getOnline(),
+                    initialMessage = optionsParser.getInitialMessage()
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
     }
 
     @ReactMethod
-    fun purgeWallet(cid: String, promise: Promise) {
+    fun createWallet(options: ReadableMap, promise: Promise) {
         try {
-            sdk.purgeWallet(cid) { handleResult(it, promise) }
+            val optionsParser = OptionsParser(options)
+            sdk.createWallet(
+                    cardId = optionsParser.getCardId(),
+                    walletIndex = optionsParser.getWalletIndex().first,
+                    initialMessage = optionsParser.getInitialMessage()
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
     }
 
     @ReactMethod
-    fun sign(cid: String, hashes: ReadableArray, promise: Promise) {
+    fun purgeWallet(options: ReadableMap, promise: Promise) {
         try {
+            val optionsParser = OptionsParser(options)
+            sdk.purgeWallet(
+                    cardId = optionsParser.getCardId(),
+                    walletIndex = optionsParser.getWalletIndex().second,
+                    initialMessage = optionsParser.getInitialMessage()
+            ) { handleResult(it, promise) }
+        } catch (ex: Exception) {
+            handleException(ex, promise)
+        }
+    }
+
+    @ReactMethod
+    fun sign(hashes: ReadableArray, options: ReadableMap, promise: Promise) {
+        try {
+            val optionsParser = OptionsParser(options)
             val hexHashes = hashes.toArrayList().map { it.toString().hexToBytes() }.toTypedArray()
-            sdk.sign(hexHashes, cid) { handleResult(it, promise) }
+            sdk.sign(
+                    hashes = hexHashes,
+                    cardId = optionsParser.getCardId(),
+                    walletIndex = optionsParser.getWalletIndex().second,
+                    initialMessage = optionsParser.getInitialMessage()
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
@@ -189,18 +218,28 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
 
     @ReactMethod
-    fun changePin1(cid: String, pin: String, promise: Promise) {
+    fun changePin1(options: ReadableMap, promise: Promise) {
         try {
-            sdk.changePin1(cid, if (pin.isBlank()) null else pin.calculateSha256()) { handleResult(it, promise) }
+            val optionsParser = OptionsParser(options)
+            sdk.changePin1(
+                    cardId = optionsParser.getCardId(),
+                    pin = optionsParser.getPin(),
+                    initialMessage = optionsParser.getInitialMessage()
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
     }
 
     @ReactMethod
-    fun changePin2(cid: String, pin: String, promise: Promise) {
+    fun changePin2(options: ReadableMap, promise: Promise) {
         try {
-            sdk.changePin2(cid, if (pin.isBlank()) null else pin.calculateSha256()) { handleResult(it, promise) }
+            val optionsParser = OptionsParser(options)
+            sdk.changePin2(
+                    cardId = optionsParser.getCardId(),
+                    pin = optionsParser.getPin(),
+                    initialMessage = optionsParser.getInitialMessage()
+            ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
         }
@@ -307,7 +346,6 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
         return writableArray
     }
 
-
     private fun normalizeResponse(resp: Any?): WritableMap {
         val jsonString = converter.gson.toJson(resp)
         val jsonObject = JSONObject(jsonString)
@@ -323,7 +361,8 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             is CompletionResult.Failure<*> -> {
                 val error = completionResult.error
                 val errorMessage = if (error is TangemSdkError) {
-                    wActivity.get()?.getString(error.localizedDescription()) ?: error.customMessage
+                    val activity = wActivity.get()
+                    if (activity == null) error.customMessage else error.localizedDescription(activity)
                 } else {
                     error.customMessage
                 }
@@ -352,6 +391,49 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     companion object {
         lateinit var wActivity: WeakReference<Activity?>
     }
+}
 
 
+class OptionsParser(options: ReadableMap) {
+    val options: ReadableMap = options
+
+    fun getInitialMessage(): Message? {
+        if (!options.hasKey("initialMessage")) return null
+
+        if (options.getMap("initialMessage") !is ReadableMap) {
+            return null
+        }
+        val message = options.getMap("initialMessage") as ReadableMap
+
+        val header = if (message.hasKey("header")) message.getString("header") else ""
+        val body = if (message.hasKey("body")) message.getString("body") else ""
+        return Message(
+                header,
+                body
+        )
+    }
+
+    fun getWalletIndex(): Pair<Int?, WalletIndex?> {
+        if (!options.hasKey("walletIndex")) return Pair(null, null)
+        val walletIndex = options.getInt("walletIndex")
+        return Pair(walletIndex, WalletIndex.Index(walletIndex))
+    }
+
+    fun getCardId(): String? {
+        if (!options.hasKey("cardId")) return null
+        return options.getString("cardId")
+    }
+
+
+    fun getPin(): ByteArray? {
+        if (!options.hasKey("pin")) return null
+        val pin = options.getString("pin") as String
+
+        return if (pin.isBlank()) null else pin.calculateSha256()
+    }
+
+    fun getOnline(): Boolean {
+        if (!options.hasKey("online")) return false
+        return options.getBoolean("online")
+    }
 }

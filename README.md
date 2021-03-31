@@ -9,6 +9,7 @@ The Tangem card is a self-custodial hardware wallet for blockchain assets. The m
   - [Android Notes](#android-notes)
 - [Usage](#usage)
   - [Scan card](#scan-card)
+  - [Verify card](#verify-card)
   - [Sign](#sign)
     - [Wallet](#wallet)
       - [Create Wallet](#create-wallet)
@@ -23,8 +24,8 @@ The Tangem card is a self-custodial hardware wallet for blockchain assets. The m
 
 #### iOS
 
-iOS 11+ (CoreNFC is required), Xcode 11+
-SDK can be imported to iOS 11, but it will work only since iOS 13.
+iOS 13+ (CoreNFC is required), Xcode 11+
+SDK can be imported to iOS 13, and can work only since iOS 13.
 
 #### Android
 
@@ -201,17 +202,28 @@ Method `RNTangemSdk.scanCard()` is needed to obtain information from the Tangem 
 RNTangemSdk.scanCard();
 ```
 
+#### Verify card
+
+Method `RNTangemSdk.verifyCard()` is ensures the card has not been counterfeited. By using standard challenge-response scheme, the card proves possession of CardPrivateKey that corresponds to CardPublicKey returned by [scanCard]. Then the data is sent to Tangem server to prove that this card was indeed issued by Tangem. 
+
+```js
+RNTangemSdk.verifyCard();
+```
+
 #### Sign
 
 Method `RNTangemSdk.sign()` allows you to sign one or multiple hashes. The SIGN command will return a corresponding array of signatures.
 
 ```js
-const cid = "bb03000000000004";
+var cardId = "bb03000000000004";
 
-RNTangemSdk.sign(cid, [
-  "44617461207573656420666f722068617368696e67",
-  "4461746120666f7220757365642068617368696e67",
-]);
+RNTangemSdk.sign(
+  [
+    "44617461207573656420666f722068617368696e67",
+    "4461746120666f7220757365642068617368696e67",
+  ],
+  { cardId }
+);
 ```
 
 #### Wallet
@@ -221,8 +233,9 @@ RNTangemSdk.sign(cid, [
 Method `RNTangemSdk.createWallet()` will create a new wallet on the card. A key pair `WalletPublicKey` / `WalletPrivateKey` is generated and securely stored in the card.
 
 ```js
-var cid = "bb03000000000004";
-RNTangemSdk.createWallet(cid);
+var cardId = "bb03000000000004";
+
+RNTangemSdk.createWallet({ cardId });
 ```
 
 ##### Purge Wallet
@@ -230,8 +243,9 @@ RNTangemSdk.createWallet(cid);
 Method `RNTangemSdk.purgeWallet()` deletes all wallet data.
 
 ```js
-var cid = "bb03000000000004";
-RNTangemSdk.purgeWallet(cid);
+var cardId = "bb03000000000004";
+
+RNTangemSdk.purgeWallet({ cardId });
 ```
 
 #### Pin codes
@@ -240,11 +254,11 @@ _Access code (PIN1)_ restricts access to the whole card. App must submit the cor
 _Passcode (PIN2)_ is required to sign a transaction or to perform some other commands entailing a change of the card state.
 
 ```js
-var cid = "bb03000000000004";
+var cardId = "bb03000000000004";
 var pin = "123456";
 
 //TangemSdk.changePin1(cid);
-RNTangemSdk.changePin2(cid, pin);
+RNTangemSdk.changePin2({ cardId, pin });
 ```
 
 > Passing empty string as PIN will trigger SDK dialog for entering the PIN code by user
