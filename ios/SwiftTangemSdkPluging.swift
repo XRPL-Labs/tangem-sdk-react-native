@@ -19,11 +19,24 @@ class RNTangemSdk: NSObject {
     
     @objc func scanCard(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
+            let optionsParser = OptionsParser(options: options)
             self.sdk.scanCard (
-                onlineVerification: self.getArg("onlineVerification", args: options, defaultValue: true) as! Bool,
-                walletIndex: WalletIndex.index(self.getArg("walletIndex", args: options, defaultValue: 0) as! Int),
-                initialMessage: self.getArg("initialMessage", args: options) as? Message,
-                pin1: self.getArg("pin1", args: options) as? String
+                onlineVerification: optionsParser.getOnlineVerification(),
+                walletIndex: optionsParser.getWalletIndex().1,
+                initialMessage: optionsParser.getInitialMessage(),
+                pin1: optionsParser.getPin1()
+            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+        }
+    }
+    
+    @objc func verifyCard(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            let optionsParser = OptionsParser(options: options)
+            self.sdk.verify (
+                cardId: optionsParser.getCardId(),
+                online: optionsParser.getOnline(),
+                initialMessage: optionsParser.getInitialMessage(),
+                pin1: optionsParser.getPin1()
             ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
@@ -31,59 +44,62 @@ class RNTangemSdk: NSObject {
     
     @objc func createWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
+            let optionsParser = OptionsParser(options: options)
             self.sdk.createWallet(
-                cardId: self.getArg("cardId", args: options) as? String,
-                walletIndex: self.getArg("walletIndex", args: options, defaultValue: 0) as? Int,
-                initialMessage: self.getArg("initialMessage", args: options) as? Message,
-                pin1: self.getArg("pin1", args: options) as? String,
-                pin2: self.getArg("pin2", args: options) as? String
+                cardId: optionsParser.getCardId(),
+                walletIndex: optionsParser.getWalletIndex().0,
+                initialMessage: optionsParser.getInitialMessage(),
+                pin1: optionsParser.getPin1(),
+                pin2: optionsParser.getPin2()
             ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
     @objc func purgeWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
+            let optionsParser = OptionsParser(options: options)
             self.sdk.purgeWallet(
-                cardId: self.getArg("cardId", args: options) as? String,
-                walletIndex: WalletIndex.index(self.getArg("walletIndex", args: options, defaultValue: 0) as! Int),
-                initialMessage: self.getArg("initialMessage", args: options) as? Message,
-                pin1: self.getArg("pin1", args: options) as? String,
-                pin2: self.getArg("pin2", args: options) as? String
+                cardId: optionsParser.getCardId(),
+                walletIndex: optionsParser.getWalletIndex().1,
+                initialMessage: optionsParser.getInitialMessage(),
+                pin1: optionsParser.getPin1(),
+                pin2: optionsParser.getPin2()
             ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
     @objc func sign(_ hashes: [String], options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
+            let optionsParser = OptionsParser(options: options)
             self.sdk.sign(
                 hashes: hashes.compactMap({Data(hexString: $0)}),
-                cardId: self.getArg("cardId", args: options) as? String,
-                walletIndex: WalletIndex.index(self.getArg("walletIndex", args: options, defaultValue: 0) as! Int),
-                initialMessage: self.getArg("initialMessage", args: options) as? Message,
-                pin1: self.getArg("pin1", args: options) as? String,
-                pin2: self.getArg("pin2", args: options) as? String
+                cardId: optionsParser.getCardId(),
+                walletIndex: optionsParser.getWalletIndex().1,
+                initialMessage: optionsParser.getInitialMessage(),
+                pin1: optionsParser.getPin1(),
+                pin2: optionsParser.getPin2()
             ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
     @objc func changePin1(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        let pin = self.getArg("pin", args: options, defaultValue: "") as! String
         DispatchQueue.main.async {
+            let optionsParser = OptionsParser(options: options)
             self.sdk.changePin1(
-                cardId: self.getArg("cardId", args: options) as? String,
-                pin: pin.isEmpty ? nil : pin.sha256(),
-                initialMessage: self.getArg("initialMessage", args: options) as? Message
+                cardId: optionsParser.getCardId(),
+                pin: optionsParser.getPin(),
+                initialMessage: optionsParser.getInitialMessage()
             ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
     
     @objc func changePin2(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        let pin = self.getArg("pin", args: options, defaultValue: "") as! String
         DispatchQueue.main.async {
+            let optionsParser = OptionsParser(options: options)
             self.sdk.changePin2(
-                cardId: self.getArg("cardId", args: options) as? String,
-                pin: pin.isEmpty ? nil : pin.sha256(),
-                initialMessage: self.getArg("initialMessage", args: options) as? Message
+                cardId: optionsParser.getCardId(),
+                pin: optionsParser.getPin(),
+                initialMessage: optionsParser.getInitialMessage()
             ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
@@ -136,6 +152,7 @@ class RNTangemSdk: NSObject {
         reject("9998", "Failed to sign data", nil)
     }
 }
+
 fileprivate struct PluginError: Encodable {
     let code: Int
     let localizedDescription: String
@@ -151,5 +168,87 @@ fileprivate struct PluginError: Encodable {
 fileprivate extension TangemSdkError {
     func toPluginError() -> PluginError {
         return PluginError(code: self.code, localizedDescription: self.localizedDescription)
+    }
+}
+
+class OptionsParser {
+    var options: NSDictionary
+
+    init(options: NSDictionary) {
+        self.options = options
+    }
+    
+    func getOnlineVerification() -> Bool {
+        if let onlineVerification = self.options.object(forKey: "onlineVerification") as? Bool {
+            return onlineVerification;
+        }
+        else {
+            return false;
+        }
+    }
+    
+    func getInitialMessage() -> Message? {
+        let message = self.options.object(forKey: "initialMessage") as? NSDictionary
+        if let unwrappedMessage = message {
+            return Message(
+                header: unwrappedMessage.object(forKey: "header") as? String,
+                body: unwrappedMessage.object(forKey: "body") as? String
+            )
+        }
+        return nil;
+    }
+    
+    func getWalletIndex() -> (Int?, WalletIndex?) {
+        if let walletIndex = self.options.object(forKey: "walletIndex") as? Int {
+            return (walletIndex, WalletIndex.index(walletIndex))
+        }
+        else {
+            return (nil, nil)
+        }
+    }
+    
+    func getCardId() -> String? {
+        if let cardId = self.options.object(forKey: "cardId") as? String {
+            return cardId;
+        }
+        else {
+            return nil;
+        }
+    }
+    
+    func getPin1() -> String? {
+        if let pin1 = self.options.object(forKey: "pin1") as? String {
+            return pin1;
+        }
+        else {
+            return nil;
+        }
+    }
+    
+    func getPin2() -> String? {
+        if let pin2 = self.options.object(forKey: "pin2") as? String {
+            return pin2;
+        }
+        else {
+            return nil;
+        }
+    }
+    
+    func getPin() -> Data? {
+        if let pin = self.options.object(forKey: "pin") as? String {
+            return pin.isEmpty ? nil : pin.sha256();
+        }
+        else {
+            return nil;
+        }
+    }
+    
+    func getOnline() -> Bool {
+        if let online = self.options.object(forKey: "online") as? Bool {
+            return online;
+        }
+        else {
+            return false;
+        }
     }
 }

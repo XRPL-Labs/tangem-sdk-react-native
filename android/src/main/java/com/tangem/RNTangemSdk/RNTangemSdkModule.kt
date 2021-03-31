@@ -5,41 +5,30 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-
+import android.nfc.NfcAdapter
 import android.os.Handler
 import android.os.Looper
-import android.nfc.NfcAdapter
-
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
-
 import com.google.gson.JsonSyntaxException
 import com.squareup.sqldelight.android.AndroidSqliteDriver
-
-import com.tangem.TangemSdk
-import com.tangem.CardFilter
-import com.tangem.Config
-import com.tangem.Database
-import com.tangem.Message
-import com.tangem.TangemSdkError
+import com.tangem.*
 import com.tangem.commands.WalletIndex
 import com.tangem.commands.common.ResponseConverter
+import com.tangem.commands.common.card.FirmwareType
 import com.tangem.common.CardValuesDbStorage
 import com.tangem.common.CompletionResult
 import com.tangem.common.extensions.calculateSha256
 import com.tangem.common.extensions.hexToBytes
-import com.tangem.commands.common.card.FirmwareType
 import com.tangem.tangem_sdk_new.DefaultSessionViewDelegate
 import com.tangem.tangem_sdk_new.TerminalKeysStorage
 import com.tangem.tangem_sdk_new.extensions.localizedDescription
 import com.tangem.tangem_sdk_new.nfc.NfcManager
-
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-
 import java.lang.ref.WeakReference
-import java.util.EnumSet
+import java.util.*
 
 class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
     private lateinit var nfcManager: NfcManager
@@ -159,10 +148,24 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun scanCard(options: ReadableMap, promise: Promise) {
         try {
-            val args = options.toHashMap()
+            val optionsParser = OptionsParser(options)
             sdk.scanCard(
-                    walletIndex = this.getArg("walletIndex", args) as WalletIndex?,
-                    initialMessage = this.getArg("initialMessage", args) as Message?
+                    walletIndex = optionsParser.getWalletIndex().second,
+                    initialMessage = optionsParser.getInitialMessage()
+            ) { handleResult(it, promise) }
+        } catch (ex: Exception) {
+            handleException(ex, promise)
+        }
+    }
+
+    @ReactMethod
+    fun verifyCard(options: ReadableMap, promise: Promise) {
+        try {
+            val optionsParser = OptionsParser(options)
+            sdk.verify(
+                    cardId = optionsParser.getCardId(),
+                    online = optionsParser.getOnline(),
+                    initialMessage = optionsParser.getInitialMessage()
             ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
@@ -172,11 +175,11 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun createWallet(options: ReadableMap, promise: Promise) {
         try {
-            val args = options.toHashMap()
+            val optionsParser = OptionsParser(options)
             sdk.createWallet(
-                    cardId = this.getArg("cardId", args) as String?,
-                    walletIndex = this.getArg("walletIndex", args) as Int?,
-                    initialMessage = this.getArg("initialMessage", args) as Message?
+                    cardId = optionsParser.getCardId(),
+                    walletIndex = optionsParser.getWalletIndex().first,
+                    initialMessage = optionsParser.getInitialMessage()
             ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
@@ -186,11 +189,11 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun purgeWallet(options: ReadableMap, promise: Promise) {
         try {
-            val args = options.toHashMap()
+            val optionsParser = OptionsParser(options)
             sdk.purgeWallet(
-                    cardId = this.getArg("cardId", args) as String?,
-                    walletIndex = WalletIndex.Index(this.getArg("walletIndex", args, 0) as Int) as WalletIndex,
-                    initialMessage = this.getArg("initialMessage", args) as Message?
+                    cardId = optionsParser.getCardId(),
+                    walletIndex = optionsParser.getWalletIndex().second,
+                    initialMessage = optionsParser.getInitialMessage()
             ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
@@ -200,13 +203,13 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun sign(hashes: ReadableArray, options: ReadableMap, promise: Promise) {
         try {
-            val args = options.toHashMap()
+            val optionsParser = OptionsParser(options)
             val hexHashes = hashes.toArrayList().map { it.toString().hexToBytes() }.toTypedArray()
             sdk.sign(
                     hashes = hexHashes,
-                    cardId = this.getArg("cardId", args) as String?,
-                    walletIndex = WalletIndex.Index(this.getArg("walletIndex", args, 0) as Int) as WalletIndex,
-                    initialMessage = this.getArg("initialMessage", args) as Message?
+                    cardId = optionsParser.getCardId(),
+                    walletIndex = optionsParser.getWalletIndex().second,
+                    initialMessage = optionsParser.getInitialMessage()
             ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
@@ -217,12 +220,11 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun changePin1(options: ReadableMap, promise: Promise) {
         try {
-            val args = options.toHashMap()
-            val pin = this.getArg("pin", args, "") as String
+            val optionsParser = OptionsParser(options)
             sdk.changePin1(
-                    cardId = this.getArg("cardId", args) as String?,
-                    pin = if (pin.isBlank()) null else pin.calculateSha256(),
-                    initialMessage = this.getArg("initialMessage", args) as Message?
+                    cardId = optionsParser.getCardId(),
+                    pin = optionsParser.getPin(),
+                    initialMessage = optionsParser.getInitialMessage()
             ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
@@ -232,12 +234,11 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     @ReactMethod
     fun changePin2(options: ReadableMap, promise: Promise) {
         try {
-            val args = options.toHashMap()
-            val pin = this.getArg("pin", args, "") as String
+            val optionsParser = OptionsParser(options)
             sdk.changePin2(
-                    cardId = this.getArg("cardId", args) as String?,
-                    pin = if (pin.isBlank()) null else pin.calculateSha256(),
-                    initialMessage = this.getArg("initialMessage", args) as Message?
+                    cardId = optionsParser.getCardId(),
+                    pin = optionsParser.getPin(),
+                    initialMessage = optionsParser.getInitialMessage()
             ) { handleResult(it, promise) }
         } catch (ex: Exception) {
             handleException(ex, promise)
@@ -345,25 +346,6 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
         return writableArray
     }
 
-
-    private fun getArg(key: String, args: HashMap<String, Any>, defaultValue: Any? = null): Any? {
-        if (args.containsKey(key)) {
-            if (key === "initialMessage") {
-                if (args[key] !is HashMap<*, *>) {
-                    return null
-                }
-                val message = args["initialMessage"] as HashMap<*, *>
-                return Message(
-                        header = message["header"] as String?,
-                        body = message["body"] as String?
-                )
-            }
-            return args[key]
-        }
-        return defaultValue
-    }
-
-
     private fun normalizeResponse(resp: Any?): WritableMap {
         val jsonString = converter.gson.toJson(resp)
         val jsonObject = JSONObject(jsonString)
@@ -409,6 +391,49 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     companion object {
         lateinit var wActivity: WeakReference<Activity?>
     }
+}
 
 
+class OptionsParser(options: ReadableMap) {
+    val options: ReadableMap = options
+
+    fun getInitialMessage(): Message? {
+        if (!options.hasKey("initialMessage")) return null
+
+        if (options.getMap("initialMessage") !is ReadableMap) {
+            return null
+        }
+        val message = options.getMap("initialMessage") as ReadableMap
+
+        val header = if (message.hasKey("header")) message.getString("header") else ""
+        val body = if (message.hasKey("body")) message.getString("body") else ""
+        return Message(
+                header,
+                body
+        )
+    }
+
+    fun getWalletIndex(): Pair<Int?, WalletIndex?> {
+        if (!options.hasKey("walletIndex")) return Pair(null, null)
+        val walletIndex = options.getInt("walletIndex")
+        return Pair(walletIndex, WalletIndex.Index(walletIndex))
+    }
+
+    fun getCardId(): String? {
+        if (!options.hasKey("cardId")) return null
+        return options.getString("cardId")
+    }
+
+
+    fun getPin(): ByteArray? {
+        if (!options.hasKey("pin")) return null
+        val pin = options.getString("pin") as String
+
+        return if (pin.isBlank()) null else pin.calculateSha256()
+    }
+
+    fun getOnline(): Boolean {
+        if (!options.hasKey("online")) return false
+        return options.getBoolean("online")
+    }
 }

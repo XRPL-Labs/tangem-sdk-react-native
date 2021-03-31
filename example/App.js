@@ -9,14 +9,23 @@
  */
 
 import React, {Component} from 'react';
-import {StyleSheet, Text, View, Button, ScrollView} from 'react-native';
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Pressable,
+} from 'react-native';
 
 import RNTangemSdk from 'tangem-sdk-react-native';
 
 export default class App extends Component<{}> {
   state = {
     card: undefined,
-    log: '',
+    log: undefined,
     status: {
       enabled: false,
       support: false,
@@ -70,6 +79,10 @@ export default class App extends Component<{}> {
       .catch(this.onError);
   };
 
+  verifyCard = () => {
+    RNTangemSdk.verifyCard().then(this.onSuccess).catch(this.onError);
+  };
+
   createWallet = () => {
     RNTangemSdk.createWallet().then(this.onSuccess).catch(this.onError);
   };
@@ -80,13 +93,13 @@ export default class App extends Component<{}> {
 
   changePin1 = () => {
     // for reset the pinCode set it to '000000'
-    // const pin1 = '111';
+    // const pin = '000000';
     RNTangemSdk.changePin1().then(this.onSuccess).catch(this.onError);
   };
 
   changePin2 = () => {
     // for reset the pinCode set it to '000'
-    // const pin2 = '000';
+    // const pin = '000';
     RNTangemSdk.changePin2().then(this.onSuccess).catch(this.onError);
   };
 
@@ -102,49 +115,89 @@ export default class App extends Component<{}> {
   render() {
     const {log, status} = this.state;
     return (
-      <View style={styles.container}>
-        <View style={styles.content}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
           <Text style={styles.title}>☆RNTangemSdk example☆</Text>
-
           <Text>
             NFC Supported: {status.support.toString()} | NFC Enabled:{' '}
             {status.enabled.toString()}
           </Text>
-          <View style={styles.row}>
-            <Button
-              style={styles.button}
-              onPress={this.scanCard}
-              title="scanCard"
-            />
-            <Button style={styles.button} onPress={this.sign} title="sign" />
-          </View>
-          <View style={styles.row}>
-            <Button onPress={this.createWallet} title="createWallet" />
-            <Button onPress={this.purgeWallet} title="purgeWallet" />
-          </View>
-          <View style={styles.row}>
-            <Button onPress={this.changePin1} title="setPin1" />
-            <Button onPress={this.changePin2} title="setPin2" />
-          </View>
+        </View>
+        <View style={styles.row}>
+          <TouchableOpacity style={styles.button} onPress={this.scanCard}>
+            <Text style={styles.buttonText}>scanCard</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={this.verifyCard}>
+            <Text style={styles.buttonText}>verifyCard</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.row}>
+          <TouchableOpacity style={styles.button} onPress={this.sign}>
+            <Text style={styles.buttonText}>sign</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.row}>
+          <TouchableOpacity style={styles.button} onPress={this.createWallet}>
+            <Text style={styles.buttonText}>screateWalletign</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={this.purgeWallet}>
+            <Text style={styles.buttonText}>purgeWallet</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.row}>
+          <TouchableOpacity style={styles.button} onPress={this.changePin1}>
+            <Text style={styles.buttonText}>changePin1</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={this.changePin2}>
+            <Text style={styles.buttonText}>changePin2</Text>
+          </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.flex1}>
-          <Text>{log}</Text>
-        </ScrollView>
-      </View>
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={!!log}
+          onRequestClose={() => {
+            this.setState({log: undefined});
+          }}>
+          <View style={styles.modalContainer}>
+            <Pressable
+              style={[styles.buttonClose]}
+              onPress={() => this.setState({log: undefined})}>
+              <Text style={styles.buttonText}>Close</Text>
+            </Pressable>
+            <ScrollView
+              style={styles.modalView}
+              contentContainerStyle={{paddingBottom: 50}}>
+              <Text>{log}</Text>
+            </ScrollView>
+          </View>
+        </Modal>
+      </SafeAreaView>
     );
   }
 }
 
 const styles = StyleSheet.create({
-  flex1: {
-    flex: 1,
-  },
   container: {
     flex: 1,
+    backgroundColor: '#F5FCFF',
+  },
+  modalContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 22,
+    height: '75%',
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+  },
+  modalView: {
     backgroundColor: '#F5FCFF',
+    alignSelf: 'stretch',
+    borderColor: '#626984',
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 25,
   },
   title: {
     fontWeight: 'bold',
@@ -156,12 +209,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     padding: 10,
+    marginHorizontal: 10,
   },
-  content: {
-    flex: 1,
+  header: {
+    paddingVertical: 30,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   button: {
-    marginHorizontal: 5,
+    flex: 1,
+    margin: 5,
+    padding: 10,
+    backgroundColor: '#3052FF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  buttonText: {
+    color: '#fff',
+    textAlign: 'center',
+    paddingLeft: 10,
+    paddingRight: 10,
+  },
+  buttonClose: {
+    width: '100%',
+    padding: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    backgroundColor: '#FF5B5B',
   },
 });

@@ -9,6 +9,7 @@ The Tangem card is a self-custodial hardware wallet for blockchain assets. The m
   - [Android Notes](#android-notes)
 - [Usage](#usage)
   - [Scan card](#scan-card)
+  - [Verify card](#verify-card)
   - [Sign](#sign)
     - [Wallet](#wallet)
       - [Create Wallet](#create-wallet)
@@ -23,8 +24,8 @@ The Tangem card is a self-custodial hardware wallet for blockchain assets. The m
 
 #### iOS
 
-iOS 11+ (CoreNFC is required), Xcode 11+
-SDK can be imported to iOS 11, but it will work only since iOS 13.
+iOS 13+ (CoreNFC is required), Xcode 11+
+SDK can be imported to iOS 13, and can work only since iOS 13.
 
 #### Android
 
@@ -199,6 +200,14 @@ Method `RNTangemSdk.scanCard()` is needed to obtain information from the Tangem 
 
 ```js
 RNTangemSdk.scanCard();
+```
+
+#### Verify card
+
+Method `RNTangemSdk.verifyCard()` is ensures the card has not been counterfeited. By using standard challenge-response scheme, the card proves possession of CardPrivateKey that corresponds to CardPublicKey returned by [scanCard]. Then the data is sent to Tangem server to prove that this card was indeed issued by Tangem. 
+
+```js
+RNTangemSdk.verifyCard();
 ```
 
 #### Sign

@@ -70,6 +70,12 @@ TangemModuleProxy.scanCard = (options = {}) => {
   return RNTangemSdk.scanCard(options);
 };
 /**
+ * Verify Card and ensures the card has not been counterfeited.
+ */
+ TangemModuleProxy.verifyCard = (options = {}) => {
+  return RNTangemSdk.verifyCard(options);
+};
+/**
  * create a new wallet on the card
  */
 TangemModuleProxy.createWallet = (options = {}) => {
