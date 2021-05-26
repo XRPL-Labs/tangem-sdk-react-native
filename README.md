@@ -144,6 +144,13 @@ LIBRARY_SEARCH_PATHS = (
 ```
 
 3) Configure your app to detect NFC tags. Turn on Near Field Communication Tag Reading under the Capabilities tab for the project’s target (see [Add a capability to a target](https://help.apple.com/xcode/mac/current/#/dev88ff319e7)).
+**Note.** When you adding `Near Field Communication Tag Reading` capability, Xcode generates entries in `*.entitlement` file. You should check that there are only the `Tag` string in `formats` array. Otherwise AppStore will reject your build when you try to upload it.
+``` xml
+<key>com.apple.developer.nfc.readersession.formats</key>
+<array>
+    <string>TAG</string>
+</array>
+```
 
 4) Add the [NFCReaderUsageDescription](https://developer.apple.com/documentation/bundleresources/information_property_list/nfcreaderusagedescription) key as a string item to the Info.plist file. For the value, enter a string that describes the reason the app needs access to the device’s NFC reader:
 
