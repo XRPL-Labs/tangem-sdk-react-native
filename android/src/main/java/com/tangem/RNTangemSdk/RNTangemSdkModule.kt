@@ -268,7 +268,9 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     }
 
     private fun sendEvent(event: String, payload: WritableMap) {
-        reactContext.getJSModule(RCTDeviceEventEmitter::class.java).emit(event, payload)
+        if(reactContext.hasActiveCatalystInstance()) {
+            reactContext.getJSModule(RCTDeviceEventEmitter::class.java).emit(event, payload)
+        }
     }
 
     private val mReceiver: BroadcastReceiver =
