@@ -1,125 +1,140 @@
 import { EmitterSubscription } from "react-native";
 
-export enum Settings {
-  IsReusable = "IsReusable",
-  UseActivation = "UseActivation",
-  ProhibitPurgeWallet = " ProhibitPurgeWallet",
-  UseBlock = "UseBlock",
-
-  AllowSetPIN1 = "AllowSetPIN1",
-  AllowSetPIN2 = "AllowSetPIN2",
-  UseCvc = "UseCvc",
-  ProhibitDefaultPIN1 = "ProhibitDefaultPIN1",
-
-  UseOneCommandAtTime = "UseOneCommandAtTime",
-  UseNDEF = "UseNDEF",
-  UseDynamicNDEF = "UseDynamicNDEF",
-  SmartSecurityDelay = "SmartSecurityDelay",
-
-  AllowUnencrypted = "AllowUnencrypted",
-  AllowFastEncryption = "AllowFastEncryption",
-
-  ProtectIssuerDataAgainstReplay = "ProtectIssuerDataAgainstReplay",
-  RestrictOverwriteIssuerExtraData = "RestrictOverwriteIssuerExtraData",
-
-  AllowSelectBlockchain = "AllowSelectBlockchain",
-
-  DisablePrecomputedNDEF = "DisablePrecomputedNDEF",
-
-  SkipSecurityDelayIfValidatedByLinkedTerminal = "SkipSecurityDelayIfValidatedByLinkedTerminal",
-  SkipCheckPIN2CVCIfValidatedByIssuer = "SkipCheckPIN2CVCIfValidatedByIssuer",
-  SkipSecurityDelayIfValidatedByIssuer = "SkipSecurityDelayIfValidatedByIssuer",
-
-  RequireTermTxSignature = "RequireTermTxSignature",
-  RequireTermCertSignature = "RequireTermCertSignature",
-  CheckPIN3OnCard = "CheckPIN3OnCard",
-}
-
-export enum CardStatus {
-  NotPersonalized = "NotPersonalized",
-  Empty = "Empty",
-  Loaded = "Loaded",
-  Purged = "Purged",
+export enum EncryptionMode {
+  None = "None",
+  Fast = "Fast",
+  Strong = "Strong",
 }
 
 export enum EllipticCurve {
-  secp256k1 = "secp256k1",
-  ed25519 = "ed25519",
+  Secp256k1 = "secp256k1",
+  Secp256r1 = "secp256r1",
+  Ed25519 = "ed25519",
 }
 
-export enum SigningMethods {
-  SignHash = "SignHash",
-  SignRaw = "SignRaw",
-  SignHashSignedByIssuer = "SignHashSignedByIssuer",
-  SignRawSignedByIssuer = "SignRawSignedByIssuer",
-  SignHashSignedByIssuerAndUpdateIssuerData = "SignHashSignedByIssuerAndUpdateIssuerData",
-  SignRawSignedByIssuerAndUpdateIssuerData = "SignRawSignedByIssuerAndUpdateIssuerData",
-  SignPos = "SignPos",
+export enum LinkedTerminalStatus {
+  Current = "current",
+  Other = "other",
+  None = "none",
 }
 
-export enum Products {
-  Note = "Note",
-  Tag = "Tag",
-  IdCard = "IdCard",
-  IdIssuer = "IdIssuer",
+export enum AttestationStatus {
+  Failed = "failed",
+  Warning = "warning",
+  Skipped = "skipped",
+  VerifiedOffline = "verifiedOffline",
+  Verified = "verified",
 }
 
-export enum SetPinStatus {
-  PinsNotChanged = "PinsNotChanged",
-  Pin1Changed = "Pin1Changed",
-  Pin2Changed = "Pin2Changed",
-  Pin3Changed = "Pin3Changed",
-  Pins12Changed = "Pins12Changed",
-  Pins13Changed = "Pins13Changed",
-  Pins23Changed = "Pins23Changed",
-  Pins123Changed = "Pins123Changed",
-}
-
-export interface CardData {
+export interface CardWallet {
   /**
-   * Tangem internal manufacturing batch ID.
+   *  Wallet's public key.
    */
-  batchId?: string;
-
+  publicKey: string;
   /**
-   * Timestamp of manufacturing.
+   * Optional chain code for BIP32 derivation.
    */
-  manufactureDateTime?: Date;
+  chainCode?: string;
+  /**
+   *  Elliptic curve used for all wallet key operations.
+   */
+  curve: EllipticCurve;
+  /**
+   *  Wallet's settings
+   */
+  settings: Settings;
+  /**
+   * Total number of signed hashes returned by the wallet since its creation
+   * COS 1.16+
+   */
+  totalSignedHashes?: number;
+  /**
+   * Remaining number of `Sign` operations before the wallet will stop signing any data.
+   * Note: This counter were deprecated for cards with COS 4.0 and higher
+   */
+  remainingSignatures?: number;
+  /**
+   *  Index of the wallet in the card storage
+   */
+  index: number;
+}
 
+export interface Issuer {
   /**
    * Name of the issuer.
    */
-  issuerName?: string;
+  name: string;
+  /**
+   * Public key that is used by the card issuer to sign IssuerData field.
+   */
+  publicKey: string;
+}
+
+export interface Settings {
+  /**
+   * Delay in milliseconds before executing a command that affects any sensitive data or wallets on the card
+   */
+  securityDelay: number;
 
   /**
-   * Name of the blockchain.
+   * Maximum number of wallets that can be created for this card
    */
-  blockchainName?: string;
+  maxWalletsCount: number;
 
   /**
-   * Signature of CardId with manufacturer’s private key.
+   * Is allowed to change access code
    */
-  manufacturerSignature?: string;
+  isSettingAccessCodeAllowed: boolean;
 
   /**
-   * Mask of products enabled on card.
+   * Is  allowed to change passcode
    */
-  productMask?: Products[];
+  isSettingPasscodeAllowed: boolean;
 
   /**
-   * Name of the token.
+   * Is allowed to remove access code
    */
-  tokenSymbol?: string;
+  isResettingUserCodesAllowed: boolean;
 
   /**
-   * Smart contract address.
+   * Is LinkedTerminal feature enabled
    */
-  tokenContractAddress?: string;
+  isLinkedTerminalEnabled: boolean;
 
   /**
-   * Number of decimals in token value.
+   * All  encryption modes supported by the card
    */
-  tokenDecimal?: number;
+  supportedEncryptionModes: Array<EncryptionMode>;
+}
+
+export interface Manufacturer {
+  /**
+   * Card manufacturer name.
+   */
+  name: string;
+  /**
+   * Timestamp of manufacturing.
+   */
+  manufactureDate: Date;
+  /**
+   * Signature of CardId with manufacturer’s private key. COS 1.21+
+   */
+  signature?: string;
+}
+
+export interface FirmwareVersion {
+  stringValue: string;
+  major: number;
+  minor: number;
+  patch: number;
+  type: number;
+}
+
+export interface Attestation {
+  cardKeyAttestation: AttestationStatus;
+  walletKeysAttestation: AttestationStatus;
+  firmwareAttestation: AttestationStatus;
+  cardUniquenessAttestation: AttestationStatus;
 }
 
 export interface Card {
@@ -129,131 +144,64 @@ export interface Card {
   cardId: string;
 
   /**
-   * Name of Tangem card manufacturer.
+   * Tangem internal manufacturing batch ID.
    */
-  manufacturerName: string;
-
-  /**
-   * Current status of the card.
-   */
-  status?: CardStatus;
-
-  /**
-   * Version of Tangem COS.
-   */
-  firmwareVersion?: string;
+  batchId: string;
 
   /**
    * Public key that is used to authenticate the card against manufacturer’s database.
    * It is generated one time during card manufacturing.
    */
-  cardPublicKey?: string;
+  cardPublicKey: string;
 
   /**
-   * Card settings defined by personalization
+   * Version of Tangem COS.
    */
-  settingsMask?: Settings[];
+  firmwareVersion: FirmwareVersion;
 
   /**
-   * Public key that is used by the card issuer to sign IssuerData field.
+   * Information about manufacturer.
    */
-  issuerPublicKey?: string;
+  manufacturer: Manufacturer;
 
   /**
-   * Explicit text name of the elliptic curve used for all wallet key operations.
-   * Supported curves: ‘secp256k1’ and ‘ed25519’.
+   * Information about issuer
    */
-  curve?: EllipticCurve;
+  issuer: Issuer;
 
   /**
-   * Total number of signatures allowed for the wallet when the card was personalized.
+   * Card setting, that were set during the personalization process
    */
-  maxSignatures?: number;
+  settings: Settings;
 
   /**
-   * Defines what data should be submitted to SIGN command.
-   */
-  signingMethods?: SigningMethods[];
+   * When this value is `current`, it means that the application is linked to the card,
+   * and COS will not enforce security delay if `SignCommand` will be called
+   * with `TlvTag.TerminalTransactionSignature` parameter containing a correct signature of raw data
+   * to be signed made with `TlvTag.TerminalPublicKey`.
+   * */
+  linkedTerminalStatus: LinkedTerminalStatus;
 
   /**
-   * Delay in seconds before COS executes commands protected by PIN2.
+   * PIN2 (aka Passcode) is set.
+   * Available only for cards with COS v. 4.0 and higher.
    */
-  pauseBeforePin2?: number;
+  isPasscodeSet?: boolean;
 
   /**
-   * Public key of the blockchain wallet.
+   * Array of ellipctic curves, supported by this card. Only wallets with these curves can be created.
    */
-  walletPublicKey?: string;
+  supportedCurves: Array<EllipticCurve>;
 
   /**
-   * Remaining number of [SignCommand] operations before the wallet will stop signing transactions.
+   * Wallets, created on the card, that can be used for signature
    */
-  walletRemainingSignatures: number;
+  wallets: Array<CardWallet>;
 
   /**
-   * Total number of signed single hashes returned by the card in
-   * [SignCommand] responses since card personalization.
-   * Sums up array elements within all [SignCommand].
+   * Card's attestation report
    */
-  walletSignedHashes?: number;
-
-  /**
-   * Any non-zero value indicates that the card experiences some hardware problems.
-   * User should withdraw the value to other blockchain wallet as soon as possible.
-   * Non-zero Health tag will also appear in responses of all other commands.
-   */
-  health?: number;
-
-  /**
-   * Whether the card requires issuer’s confirmation of activation.
-   * is "true" if the card requires activation
-   * is 'false" if the card is activated or does not require activation
-   */
-  isActivated: boolean;
-
-  /**
-   * A random challenge generated by personalisation that should be signed and returned
-   * to COS by the issuer to confirm the card has been activated.
-   * This field will not be returned if the card is activated.
-   */
-  activationSeed?: string;
-
-  /**
-   * Returned only if [SigningMethod.SignPos] enabling POS transactions is supported by card.
-   */
-  paymentFlowVersion?: string;
-
-  /**
-   * This value can be initialized by terminal and will be increased by COS on execution of every [SignCommand].
-   * For example this field can store blockchain “nonce” for quick one-touch transaction on POS terminals.
-   * Returned only if [SigningMethod.SignPos]  enabling POS transactions is supported by card.
-   */
-  userCounter?: number;
-
-  /**
-   * This value can be initialized by App (with PIN2 confirmation) and will be increased by COS
-   * with the execution of each [SignCommand]. For example this field can store blockchain “nonce”
-   * for a quick one-touch transaction on POS terminals. Returned only if [SigningMethod.SignPos].
-   */
-  userProtectedCounter?: number;
-
-  /**
-   * When this value is true, it means that the application is linked to the card,
-   * and COS will not enforce security delay if [SignCommand] will be called
-   * with [TlvTag.TerminalTransactionSignature] parameter containing a correct signature of raw data
-   * to be signed made with [TlvTag.TerminalPublicKey].
-   */
-  terminalIsLinked: boolean;
-
-  /**
-   * Detailed information about card contents. Format is defined by the card issuer.
-   * Cards complaint with Tangem Wallet application should have TLV format.
-   */
-  cardData?: CardData;
-
-  isPin1Default?: boolean;
-
-  isPin2Default?: boolean;
+  attestation: Attestation;
 }
 
 export type CreateWalletResponse = {
@@ -262,13 +210,9 @@ export type CreateWalletResponse = {
    */
   cardId: string;
   /**
-   * Current status of the card [1 - Empty, 2 - Loaded, 3- Purged]
+   * Created wallet
    */
-  status: CardStatus;
-  /**
-   * Public key of a newly created blockchain wallet.
-   */
-  walletPublicKey: string;
+  wallet: CardWallet;
 };
 
 export type SignResponse = {
@@ -279,15 +223,11 @@ export type SignResponse = {
   /**
    * signature Signed hashes (array of resulting signatures)
    */
-  signature: string | string[];
-  /**
-   * Remaining number of sign operations before the wallet will stop signing transactions.
-   */
-  walletRemainingSignatures: number;
+  signatures: string[];
   /**
    * Total number of signed single hashes returned by the card in sign command responses.
    */
-  walletSignedHashes?: number;
+  totalSignedHashes?: number;
 };
 
 export type PurgeWalletResponse = {
@@ -295,10 +235,6 @@ export type PurgeWalletResponse = {
    * CID, Unique Tangem card ID number.
    */
   cardId: string;
-  /**
-   * Current status of the card [1 - Empty, 2 - Loaded, 3- Purged]
-   */
-  status: CardStatus;
 };
 
 export type SetUserCodesResponse = {
@@ -306,39 +242,6 @@ export type SetUserCodesResponse = {
    * CID, Unique Tangem card ID number.
    */
   cardId: string;
-  /**
-   * Result status
-   */
-  status?: SetPinStatus;
-};
-
-export enum VerifyCardState {
-  VerifiedOnline = "VerifiedOnline",
-  VerifiedOffline = "VerifiedOffline",
-}
-
-export type VerifyCardResponse = {
-  /**
-   * CID, Unique Tangem card ID number.
-   */
-  cardId: string;
-  /**
-   * verification state
-   */
-  verificationState: "VerifyCardState";
-  /**
-   * Challenge and salt signed with the wallet private key.
-   */
-  cardSignature: string;
-  /**
-   * #### (iOS specific)
-   * card publicKey
-   */
-  cardPublicKey?: string;
-  /**
-   * Random salt generated by the card
-   */
-  salt: string;
 };
 
 /* Methods options ==================================================================== */
