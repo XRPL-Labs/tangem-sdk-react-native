@@ -21,86 +21,111 @@ class RNTangemSdk: NSObject {
         DispatchQueue.main.async {
             let optionsParser = OptionsParser(options: options)
             self.sdk.scanCard (
-                onlineVerification: optionsParser.getOnlineVerification(),
-                walletIndex: optionsParser.getWalletIndex().1,
-                initialMessage: optionsParser.getInitialMessage(),
-                pin1: optionsParser.getPin1()
+                initialMessage: optionsParser.getInitialMessage()
             ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
         }
     }
-    
-    @objc func verifyCard(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        DispatchQueue.main.async {
-            let optionsParser = OptionsParser(options: options)
-            self.sdk.verify (
-                cardId: optionsParser.getCardId(),
-                online: optionsParser.getOnline(),
-                initialMessage: optionsParser.getInitialMessage(),
-                pin1: optionsParser.getPin1()
-            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
-        }
-    }
-    
     
     @objc func createWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            let optionsParser = OptionsParser(options: options)
-            self.sdk.createWallet(
-                cardId: optionsParser.getCardId(),
-                walletIndex: optionsParser.getWalletIndex().0,
-                initialMessage: optionsParser.getInitialMessage(),
-                pin1: optionsParser.getPin1(),
-                pin2: optionsParser.getPin2()
-            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            do{
+                let optionsParser = OptionsParser(options: options)
+                self.sdk.createWallet(
+                    curve: optionsParser.getCurve(),
+                    cardId: try optionsParser.getCardId(),
+                    initialMessage: optionsParser.getInitialMessage()
+                ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            } catch OptionsParserError.RquiredArgument(let arg){
+                reject("RQUIRED_ARGUMENT", "\(arg) is required", nil);
+            } catch {
+                reject("UNEXPECTED_ERROR", "Unexpected error: \(error).", nil);
+            }
         }
     }
     
     @objc func purgeWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            let optionsParser = OptionsParser(options: options)
-            self.sdk.purgeWallet(
-                cardId: optionsParser.getCardId(),
-                walletIndex: optionsParser.getWalletIndex().1,
-                initialMessage: optionsParser.getInitialMessage(),
-                pin1: optionsParser.getPin1(),
-                pin2: optionsParser.getPin2()
-            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            do{
+                let optionsParser = OptionsParser(options: options)
+                self.sdk.purgeWallet(
+                    walletPublicKey: try optionsParser.getWalletPublicKey(),
+                    cardId: try optionsParser.getCardId(),
+                    initialMessage: optionsParser.getInitialMessage()
+                ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            } catch OptionsParserError.RquiredArgument(let arg){
+                reject("RQUIRED_ARGUMENT", "\(arg) is required", nil);
+            } catch {
+                reject("UNEXPECTED_ERROR", "Unexpected error: \(error).", nil);
+            }
         }
     }
     
-    @objc func sign(_ hashes: [String], options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc func sign(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            let optionsParser = OptionsParser(options: options)
-            self.sdk.sign(
-                hashes: hashes.compactMap({Data(hexString: $0)}),
-                cardId: optionsParser.getCardId(),
-                walletIndex: optionsParser.getWalletIndex().1,
-                initialMessage: optionsParser.getInitialMessage(),
-                pin1: optionsParser.getPin1(),
-                pin2: optionsParser.getPin2()
-            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            do{
+                let optionsParser = OptionsParser(options: options)
+                self.sdk.sign(
+                    hashes: try optionsParser.getHashes(),
+                    walletPublicKey: try optionsParser.getWalletPublicKey(),
+                    cardId: try optionsParser.getCardId(),
+                    hdPath: optionsParser.getHdPath(),
+                    initialMessage: optionsParser.getInitialMessage()
+                ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            } catch OptionsParserError.RquiredArgument(let arg){
+                reject("RQUIRED_ARGUMENT", "\(arg) is required", nil);
+            } catch {
+                reject("UNEXPECTED_ERROR", "Unexpected error: \(error).", nil);
+            }
         }
     }
     
-    @objc func changePin1(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc func setAccessCode(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            let optionsParser = OptionsParser(options: options)
-            self.sdk.changePin1(
-                cardId: optionsParser.getCardId(),
-                pin: optionsParser.getPin(),
-                initialMessage: optionsParser.getInitialMessage()
-            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            do{
+                let optionsParser = OptionsParser(options: options)
+                self.sdk.setAccessCode(
+                    optionsParser.getAccessCode(),
+                    cardId: try optionsParser.getCardId(),
+                    initialMessage: optionsParser.getInitialMessage()
+                ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            } catch OptionsParserError.RquiredArgument(let arg){
+                reject("RQUIRED_ARGUMENT", "\(arg) is required", nil);
+            } catch {
+                reject("UNEXPECTED_ERROR", "Unexpected error: \(error).", nil);
+            }
         }
     }
     
-    @objc func changePin2(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc func setPasscode(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
-            let optionsParser = OptionsParser(options: options)
-            self.sdk.changePin2(
-                cardId: optionsParser.getCardId(),
-                pin: optionsParser.getPin(),
-                initialMessage: optionsParser.getInitialMessage()
-            ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            do{
+                let optionsParser = OptionsParser(options: options)
+                self.sdk.setPasscode(
+                    optionsParser.getPasscode(),
+                    cardId: try optionsParser.getCardId(),
+                    initialMessage: optionsParser.getInitialMessage()
+                ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            } catch OptionsParserError.RquiredArgument(let arg){
+                reject("RQUIRED_ARGUMENT", "\(arg) is required", nil);
+            } catch {
+                reject("UNEXPECTED_ERROR", "Unexpected error: \(error).", nil);
+            }
+        }
+    }
+    
+    @objc func resetUserCodes(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            do{
+                let optionsParser = OptionsParser(options: options)
+                self.sdk.resetUserCodes(
+                    cardId: try optionsParser.getCardId(),
+                    initialMessage: optionsParser.getInitialMessage()
+                ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
+            } catch OptionsParserError.RquiredArgument(let arg){
+                reject("RQUIRED_ARGUMENT", "\(arg) is required", nil);
+            } catch {
+                reject("UNEXPECTED_ERROR", "Unexpected error: \(error).", nil);
+            }
         }
     }
     
@@ -139,7 +164,7 @@ class RNTangemSdk: NSObject {
     private func handleCompletion<TResult: JSONStringConvertible>(_ sdkResult: Result<TResult, TangemSdkError>, _ resolve: RCTPromiseResolveBlock, _ reject: RCTPromiseRejectBlock) {
         switch sdkResult {
         case .success(let response):
-            guard let data = response.description.data(using: .utf8) else { resolve({}); break }
+            guard let data = response.json.data(using: .utf8) else { resolve({}); break }
             let jsonObject = try? JSONSerialization.jsonObject(with: data, options: [])
             resolve(jsonObject)
         case .failure(let error):
@@ -165,27 +190,25 @@ fileprivate struct PluginError: Encodable {
     }
 }
 
+@available(iOS 13.0, *)
 fileprivate extension TangemSdkError {
     func toPluginError() -> PluginError {
         return PluginError(code: self.code, localizedDescription: self.localizedDescription)
     }
 }
 
+enum OptionsParserError: Error {
+    case RquiredArgument(arg: String)
+}
+
+@available(iOS 13.0, *)
 class OptionsParser {
     var options: NSDictionary
-
+    
     init(options: NSDictionary) {
         self.options = options
     }
     
-    func getOnlineVerification() -> Bool {
-        if let onlineVerification = self.options.object(forKey: "onlineVerification") as? Bool {
-            return onlineVerification;
-        }
-        else {
-            return false;
-        }
-    }
     
     func getInitialMessage() -> Message? {
         let message = self.options.object(forKey: "initialMessage") as? NSDictionary
@@ -198,57 +221,85 @@ class OptionsParser {
         return nil;
     }
     
-    func getWalletIndex() -> (Int?, WalletIndex?) {
-        if let walletIndex = self.options.object(forKey: "walletIndex") as? Int {
-            return (walletIndex, WalletIndex.index(walletIndex))
-        }
-        else {
-            return (nil, nil)
-        }
-    }
-    
-    func getCardId() -> String? {
+    func getCardId() throws -> String {
         if let cardId = self.options.object(forKey: "cardId") as? String {
-            return cardId;
+            if(cardId.isEmpty){
+                throw OptionsParserError.RquiredArgument(arg: "cardId");
+            }else{
+                return cardId;
+            }
+        }
+        else {
+            throw OptionsParserError.RquiredArgument(arg: "cardId");
+        }
+    }
+    
+    func getPasscode() -> String? {
+        if let passcode = self.options.object(forKey: "passcode") as? String {
+            return passcode;
         }
         else {
             return nil;
         }
     }
     
-    func getPin1() -> String? {
-        if let pin1 = self.options.object(forKey: "pin1") as? String {
-            return pin1;
+    func getAccessCode() -> String? {
+        if let accessCode = self.options.object(forKey: "accessCode") as? String {
+            return accessCode;
         }
         else {
             return nil;
         }
     }
     
-    func getPin2() -> String? {
-        if let pin2 = self.options.object(forKey: "pin2") as? String {
-            return pin2;
+    func getCurve() -> EllipticCurve {
+        if let curve = self.options.object(forKey: "curve") as? String {
+            switch curve {
+            case "ed25519":
+                return EllipticCurve.ed25519;
+            case "secp256k1":
+                return EllipticCurve.secp256k1;
+            case "secp256r1":
+                return EllipticCurve.secp256r1;
+            default:
+                return EllipticCurve.secp256k1;
+            }
         }
         else {
-            return nil;
+            return EllipticCurve.secp256k1;
         }
     }
     
-    func getPin() -> Data? {
-        if let pin = self.options.object(forKey: "pin") as? String {
-            return pin.isEmpty ? nil : pin.sha256();
+    func getWalletPublicKey() throws -> Data {
+        if let walletPublicKey = self.options.object(forKey: "walletPublicKey") as? String {
+            if(walletPublicKey.isEmpty){
+                throw OptionsParserError.RquiredArgument(arg: "walletPublicKey");
+            }else{
+                return Data(hexString: walletPublicKey);
+            }
         }
         else {
-            return nil;
+            throw OptionsParserError.RquiredArgument(arg: "walletPublicKey");
         }
     }
     
-    func getOnline() -> Bool {
-        if let online = self.options.object(forKey: "online") as? Bool {
-            return online;
+    func getHashes() throws -> [Data] {
+        if let hashes = self.options.object(forKey: "hashes") as? [String] {
+            if(hashes.isEmpty){
+                throw OptionsParserError.RquiredArgument(arg: "hashes");
+            }else{
+                return hashes.compactMap({Data(hexString: $0)})
+            }
         }
         else {
-            return false;
+            throw OptionsParserError.RquiredArgument(arg: "hashes");
         }
+    }
+    
+    func getHdPath() -> DerivationPath? {
+        if let path = self.options.object(forKey: "hdPath") as? String {
+            return try? DerivationPath(rawPath: path)
+        }
+        return nil
     }
 }

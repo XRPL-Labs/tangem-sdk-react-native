@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   s.license      = "MIT"
   # optional - use expanded license entry instead:
   # s.license    = { :type => "MIT", :file => "LICENSE" }
-  s.authors      = { "N3TC4T" => "netcat.av@gmail.com  " }
+  s.authors      = { "N3TC4T" => "netcat.av@gmail.com" }
   s.platforms    = { :ios => "13.0" }
   s.source       = { :git => "https://github.com/XRPL-Labs/tangem-sdk-react-native.git", :tag => "#{s.version}" }
 
@@ -26,5 +26,5 @@ Pod::Spec.new do |s|
   s.swift_version = '5.0'
 
   s.dependency "React"
-  s.dependency 'TangemSdk', "2.4.2"
+  s.dependency 'TangemSdk', "3.1.0"
 end

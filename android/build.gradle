@@ -4,11 +4,11 @@ buildscript {
 
   repositories {
     google()
-    jcenter()
+    mavenCentral()
   }
 
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.2.1'
+    classpath("com.android.tools.build:gradle:4.2.2")
     // noinspection DifferentKotlinGradleVersion
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
   }
@@ -16,6 +16,8 @@ buildscript {
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+
 
 def getExtOrDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['RNTangemSdk_' + name]
@@ -24,6 +26,9 @@ def getExtOrDefault(name) {
 def getExtOrIntegerDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties['RNTangemSdk_' + name]).toInteger()
 }
+
+def kotlin_version = getExtOrDefault('kotlinVersion')
+def tangem_sdk_version = getExtOrDefault('tangemSdkVersion')
 
 android {
   compileSdkVersion getExtOrIntegerDefault('compileSdkVersion')
@@ -35,7 +40,6 @@ android {
     versionName "1.0"
     
   }
-  
   buildTypes {
     release {
       minifyEnabled false
@@ -52,7 +56,6 @@ android {
 
 repositories {
   mavenCentral()
-  jcenter()
   google()
 
   def found = false
@@ -114,16 +117,19 @@ repositories {
   }
 
   if (!found) {
-    throw new GradleException(
+    throw new FileNotFoundException(
             "${project.name}: unable to locate React Native android sources. " +
                     "Ensure you have you installed React Native as a dependency in your project and try again."
     )
   }
 }
 
-def kotlin_version = getExtOrDefault('kotlinVersion')
-
-def tangem_sdk_version = getExtOrDefault('tangemSdkVersion')
+rootProject.allprojects {
+  repositories {
+    maven { url 'https://jitpack.io' }
+    maven {url "https://nexus.tangem-tech.com/repository/maven-releases/"}
+  }
+}
 
 dependencies {
   // noinspection GradleDynamicVersion
@@ -131,12 +137,13 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
   // sdk dependencies
-  implementation "com.github.Tangem.tangem-sdk-android:tangem-core:$tangem_sdk_version"
-  implementation "com.github.Tangem.tangem-sdk-android:tangem-sdk:$tangem_sdk_version"
+  // implementation "com.github.tangem.tangem-sdk-android:tangem-sdk-core:$tangem_sdk_version"
+  // implementation "com.github.tangem.tangem-sdk-android:tangem-sdk-android:$tangem_sdk_version"
 
-  implementation "com.squareup.sqldelight:android-driver:1.4.0"
+  implementation 'com.tangem.tangem-sdk-kotlin:core:develop-80'
+  implementation 'com.tangem.tangem-sdk-kotlin:android:develop-80'
 
-  implementation 'com.google.code.gson:gson:2.8.6'
-  implementation 'androidx.appcompat:appcompat:1.2.0'
-  implementation 'androidx.core:core-ktx:1.3.2'
+  implementation 'com.squareup.moshi:moshi:1.12.0'
+  implementation "com.squareup.moshi:moshi-kotlin:1.12.0"
+  kapt("com.squareup.moshi:moshi-kotlin-codegen:1.12.0")
 }

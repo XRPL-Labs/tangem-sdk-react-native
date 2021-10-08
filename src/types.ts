@@ -299,7 +299,7 @@ export type PurgeWalletResponse = {
   status: CardStatus;
 };
 
-export type SetPinResponse = {
+export type SetUserCodesResponse = {
   /**
    * CID, Unique Tangem card ID number.
    */
@@ -307,7 +307,7 @@ export type SetPinResponse = {
   /**
    * Result status
    */
-  status: SetPinStatus;
+  status?: SetPinStatus;
 };
 
 export enum VerifyCardState {
@@ -363,92 +363,89 @@ export interface OptionsCommon {
    * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
    */
   initialMessage?: InitialMessage;
-  /**
-   * Index to wallet which data should be read.  if not specified - wallet at default index will be read. See `WalletIndex` for more info
+}
+
+export interface OptionsCreateWallet extends OptionsCommon {
+   /**
+   * cardId: CID, Unique Tangem card ID number.
    */
-  walletIndex?: number;
+   cardId: string;
+   /**
+   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
+   */
+   curve?: 'ed25519' | 'secp256k1' | 'secp256r1';
+}
+
+export interface OptionsPurgeWallet extends OptionsCommon {
+  /**
+  * cardId: CID, Unique Tangem card ID number.
+  */
+  cardId: string;
+  /**
+  * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
+  */
+   walletPublicKey: string;
+}
+
+export interface OptionsSign extends OptionsCommon {
+  /**
+   * Array of transaction hashes. It can be from one or up to ten hashes of the same length.
+   */
+  hashes: [string];
+  /**
+  * cardId: CID, Unique Tangem card ID number.
+  */
+  cardId: string;
+  /**
+  * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
+  */
+  walletPublicKey: string;
+  /**
+  * Derivation path of the wallet. Optional. COS v. 4.28 and higher,
+  */
+  hdPath: string;
+}
+
+
+export interface OptionsSetAccessCode extends OptionsCommon {
   /**
    * cardId: CID, Unique Tangem card ID number.
    */
-  cardId?: string;
+  cardId: string;
   /**
-   * #### (iOS specific)
-   * PIN1 string. Hash will be calculated automatically. If nil, the default PIN1 value will be used
-   */
-  pin1?: string;
-  /**
-   * #### (iOS specific)
-   * PIN2 string. Hash will be calculated automatically. If nil, the default PIN2 value will be used
-   */
-  pin2?: string;
+  * Access code to set. If nil, the user will be prompted to enter code before operation
+  */
+  accessCode?: string
 }
 
-export interface OptionsScanCard {
-  /**
-   * #### (iOS specific)
-   * Verify the card offline and online with Tangem backend. Do not use for developer cards
-   */
-  onlineVerification?: boolean;
-  /**
-   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
-   */
-  initialMessage?: InitialMessage;
-  /**
-   * Index to wallet which data should be read.  if not specified - wallet at default index will be read. See `WalletIndex` for more info
-   */
-  walletIndex?: number;
-  /**
-   * #### (iOS specific)
-   * PIN1 string. Hash will be calculated automatically. If nil, the default PIN1 value will be used
-   */
-  pin1?: string;
-}
-
-export interface OptionsVerifyCard {
+export interface OptionsSetPasscode extends OptionsCommon {
   /**
    * cardId: CID, Unique Tangem card ID number.
    */
-  cardId?: string;
+  cardId: string;
   /**
-   * Verify the card online with Tangem backend. Do not use for developer cards
-   */
-  online?: boolean;
-  /**
-   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
-   */
-  initialMessage?: InitialMessage;
-  /**
-   * #### (iOS specific)
-   * PIN1 string. Hash will be calculated automatically. If nil, the default PIN1 value will be used
-   */
-  pin1?: string;
+  * Passcode to set. If nil, the user will be prompted to enter code before operation
+  */
+  passcode?: string
 }
 
-export interface OptionsChangePin {
+export interface OptionsResetUserCodes extends OptionsCommon {
   /**
    * cardId: CID, Unique Tangem card ID number.
    */
-  cardId?: string;
-  /**
-   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
-   */
-  initialMessage?: InitialMessage;
-  /**
-   * PIN1 string. Hash will be calculated automatically. If nil, the default PIN value will be used
-   */
-  pin?: string;
+  cardId: string;
 }
 
 export type RNTangemSdkModule = {
   startSession(): Promise<void>;
   stopSession(): Promise<void>;
-  scanCard(options?: OptionsScanCard): Promise<Card>;
-  verifyCard(options?: OptionsScanCard): Promise<Card>;
-  createWallet(options?: OptionsCommon): Promise<CreateWalletResponse>;
-  purgeWallet(options?: OptionsCommon): Promise<PurgeWalletResponse>;
-  sign(hashes: string[], options?: OptionsCommon): Promise<SignResponse>;
-  changePin1(options?: OptionsChangePin): Promise<SetPinResponse>;
-  changePin2(options?: OptionsChangePin): Promise<SetPinResponse>;
+  scanCard(options?: OptionsCommon): Promise<Card>;
+  createWallet(options: OptionsCreateWallet): Promise<CreateWalletResponse>;
+  purgeWallet(options: OptionsPurgeWallet): Promise<PurgeWalletResponse>;
+  sign(options: OptionsSign): Promise<SignResponse>;
+  setAccessCode(options: OptionsSetAccessCode): Promise<SetUserCodesResponse>;
+  setPasscode(options: OptionsSetPasscode): Promise<SetUserCodesResponse>;
+  resetUserCodes(options: OptionsResetUserCodes): Promise<SetUserCodesResponse>;
   getNFCStatus(): Promise<NFCStatusResponse>;
   on(eventName: Events, handler: (state: EventCallback) => void): void;
   removeListener(
