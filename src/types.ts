@@ -1,3 +1,5 @@
+import { EmitterSubscription } from "react-native";
+
 export enum Settings {
   IsReusable = "IsReusable",
   UseActivation = "UseActivation",
@@ -446,5 +448,8 @@ export type RNTangemSdkModule = {
   setPasscode(options: OptionsSetPasscode): Promise<SetUserCodesResponse>;
   resetUserCodes(options: OptionsResetUserCodes): Promise<SetUserCodesResponse>;
   getNFCStatus(): Promise<NFCStatusResponse>;
-  addListener(eventName: Events, handler: (state: EventCallback) => void): void;
+  addListener(
+    eventName: Events,
+    handler: (state: EventCallback) => void
+  ): EmitterSubscription | undefined;
 };
