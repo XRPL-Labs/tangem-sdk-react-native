@@ -281,14 +281,19 @@ Method `RNTangemSdk.getNFCStatus()` will return current NFC Status which is supp
 RNTangemSdk.getNFCStatus();
 ```
 
-##### Listen on events
+##### Listen on events [Android]
 
-with `RNTangemSdk.on()` and `RNTangemSdk.removeListener()` you should be able to add/remove listener on the certain events
+with `RNTangemSdk.addListener()` you should be able to add listener on the certain events
 
 Supported Events: `NFCStateChange`
 
 ```js
-RNTangemSdk.on("NFCStateChange", (enabled) => {
+const nfcListener = RNTangemSdk.addListener("NFCStateChange", (enabled) => {
   console.log(enabled);
 });
+
+// remove listener
+if (nfcListener) {
+  nfcListener.remove();
+}
 ```

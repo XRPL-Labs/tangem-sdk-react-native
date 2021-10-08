@@ -38,14 +38,17 @@ export default class App extends Component<{}> {
     RNTangemSdk.startSession();
 
     // on nfc state change (Android)
-    RNTangemSdk.on('NFCStateChange', ({enabled}) => {
-      this.setState({
-        status: {
-          enabled,
-          support: true,
-        },
-      });
-    });
+    this.nfcChangeListener = RNTangemSdk.addListener(
+      'NFCStateChange',
+      ({enabled}) => {
+        this.setState({
+          status: {
+            enabled,
+            support: true,
+          },
+        });
+      },
+    );
 
     // get currnet nfc status
     RNTangemSdk.getNFCStatus().then(status => {
@@ -56,6 +59,10 @@ export default class App extends Component<{}> {
   }
 
   componentWillUnmount() {
+    // remove nfc listener if exists
+    if (this.nfcChangeListener) {
+      this.nfcChangeListener.remove();
+    }
     // stop the session
     RNTangemSdk.stopSession();
   }

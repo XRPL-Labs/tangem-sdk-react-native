@@ -1,4 +1,9 @@
-import { Platform, NativeModules, DeviceEventEmitter } from "react-native";
+import {
+  Platform,
+  NativeModules,
+  DeviceEventEmitter,
+  EmitterSubscription,
+} from "react-native";
 
 import { RNTangemSdkModule, EventCallback, Events } from "./types";
 
@@ -12,28 +17,14 @@ const TangemModuleProxy = {} as RNTangemSdkModule;
  * @param  {String} eventName Name of event NFCStateChange
  * @param  {Function} handler Event handler
  */
-TangemModuleProxy.on = (
+TangemModuleProxy.addListener = (
   eventName: Events,
   handler: (state: EventCallback) => void
-) => {
+): EmitterSubscription | undefined => {
   if (Platform.OS === "android") {
-    DeviceEventEmitter.addListener(eventName, handler);
+    return DeviceEventEmitter.addListener(eventName, handler);
   }
-};
-
-/**
- * Stop listening for event
- * #### (Android specific)
- * @param  {String} eventName Name of event NFCStateChange
- * @param  {Function} handler Event handler
- */
-TangemModuleProxy.removeListener = (
-  eventName: Events,
-  handler: (state: EventCallback) => void
-) => {
-  if (Platform.OS === "android") {
-    DeviceEventEmitter.removeListener(eventName, handler);
-  }
+  return undefined;
 };
 
 /**
@@ -102,7 +93,7 @@ TangemModuleProxy.setPasscode = (options) => {
 /**
  * Reset all user codes on the card
  */
- TangemModuleProxy.resetUserCodes = (options) => {
+TangemModuleProxy.resetUserCodes = (options) => {
   return RNTangemSdk.resetUserCodes(options);
 };
 

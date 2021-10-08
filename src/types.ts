@@ -366,25 +366,25 @@ export interface OptionsCommon {
 }
 
 export interface OptionsCreateWallet extends OptionsCommon {
-   /**
+  /**
    * cardId: CID, Unique Tangem card ID number.
    */
-   cardId: string;
-   /**
+  cardId: string;
+  /**
    * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
    */
-   curve?: 'ed25519' | 'secp256k1' | 'secp256r1';
+  curve?: "ed25519" | "secp256k1" | "secp256r1";
 }
 
 export interface OptionsPurgeWallet extends OptionsCommon {
   /**
-  * cardId: CID, Unique Tangem card ID number.
-  */
+   * cardId: CID, Unique Tangem card ID number.
+   */
   cardId: string;
   /**
-  * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
-  */
-   walletPublicKey: string;
+   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
+   */
+  walletPublicKey: string;
 }
 
 export interface OptionsSign extends OptionsCommon {
@@ -393,19 +393,18 @@ export interface OptionsSign extends OptionsCommon {
    */
   hashes: [string];
   /**
-  * cardId: CID, Unique Tangem card ID number.
-  */
+   * cardId: CID, Unique Tangem card ID number.
+   */
   cardId: string;
   /**
-  * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
-  */
+   * A custom description that shows at the beginning of the NFC session. If nil, default message will be used
+   */
   walletPublicKey: string;
   /**
-  * Derivation path of the wallet. Optional. COS v. 4.28 and higher,
-  */
+   * Derivation path of the wallet. Optional. COS v. 4.28 and higher,
+   */
   hdPath: string;
 }
-
 
 export interface OptionsSetAccessCode extends OptionsCommon {
   /**
@@ -413,9 +412,9 @@ export interface OptionsSetAccessCode extends OptionsCommon {
    */
   cardId: string;
   /**
-  * Access code to set. If nil, the user will be prompted to enter code before operation
-  */
-  accessCode?: string
+   * Access code to set. If nil, the user will be prompted to enter code before operation
+   */
+  accessCode?: string;
 }
 
 export interface OptionsSetPasscode extends OptionsCommon {
@@ -424,9 +423,9 @@ export interface OptionsSetPasscode extends OptionsCommon {
    */
   cardId: string;
   /**
-  * Passcode to set. If nil, the user will be prompted to enter code before operation
-  */
-  passcode?: string
+   * Passcode to set. If nil, the user will be prompted to enter code before operation
+   */
+  passcode?: string;
 }
 
 export interface OptionsResetUserCodes extends OptionsCommon {
@@ -447,9 +446,5 @@ export type RNTangemSdkModule = {
   setPasscode(options: OptionsSetPasscode): Promise<SetUserCodesResponse>;
   resetUserCodes(options: OptionsResetUserCodes): Promise<SetUserCodesResponse>;
   getNFCStatus(): Promise<NFCStatusResponse>;
-  on(eventName: Events, handler: (state: EventCallback) => void): void;
-  removeListener(
-    eventName: Events,
-    handler: (state: EventCallback) => void
-  ): void;
+  addListener(eventName: Events, handler: (state: EventCallback) => void): void;
 };
