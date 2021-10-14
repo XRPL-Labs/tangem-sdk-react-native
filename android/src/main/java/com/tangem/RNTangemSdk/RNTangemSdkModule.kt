@@ -21,6 +21,7 @@ import com.tangem.common.json.MoshiJsonConverter
 import com.tangem.common.services.secure.SecureStorage
 import com.tangem.common.CompletionResult
 import com.tangem.common.extensions.hexToBytes
+import com.tangem.operations.attestation.AttestationTask
 import com.tangem.tangem_sdk_new.DefaultSessionViewDelegate
 import com.tangem.tangem_sdk_new.extensions.localizedDescription
 import com.tangem.tangem_sdk_new.nfc.NfcManager
@@ -58,8 +59,9 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
         nfcManager = NfcManager().apply { setCurrentActivity(activity) }
         val cardManagerDelegate = DefaultSessionViewDelegate(nfcManager, nfcManager.reader).apply { this.activity = activity }
         val keyStorage = SecureStorage.create(activity)
+        val config = Config(attestationMode = AttestationTask.Mode.Offline)
 
-        sdk = TangemSdk(nfcManager.reader, cardManagerDelegate, keyStorage, Config())
+        sdk = TangemSdk(nfcManager.reader, cardManagerDelegate, keyStorage, config)
     }
 
     override fun onHostResume() {

@@ -183,10 +183,14 @@ export interface Card {
   linkedTerminalStatus: LinkedTerminalStatus;
 
   /**
-   * PIN2 (aka Passcode) is set.
-   * Available only for cards with COS v. 4.0 and higher.
+   * PIN1 (aka AccessCode) is set.
    */
-  isPasscodeSet?: boolean;
+  isAccessCodeSet: boolean;
+
+  /**
+   * PIN2 (aka Passcode) is set.
+   */
+  isPasscodeSet: boolean;
 
   /**
    * Array of ellipctic curves, supported by this card. Only wallets with these curves can be created.

@@ -127,7 +127,6 @@ repositories {
 rootProject.allprojects {
   repositories {
     maven { url 'https://jitpack.io' }
-    maven {url "https://nexus.tangem-tech.com/repository/maven-releases/"}
   }
 }
 
@@ -137,11 +136,8 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
   // sdk dependencies
-  // implementation "com.github.tangem.tangem-sdk-android:tangem-sdk-core:$tangem_sdk_version"
-  // implementation "com.github.tangem.tangem-sdk-android:tangem-sdk-android:$tangem_sdk_version"
-
-  implementation 'com.tangem.tangem-sdk-kotlin:core:develop-80'
-  implementation 'com.tangem.tangem-sdk-kotlin:android:develop-80'
+  implementation "com.github.tangem.tangem-sdk-android:android:$tangem_sdk_version"
+  implementation "com.github.tangem.tangem-sdk-android:core:$tangem_sdk_version"
 
   implementation 'com.squareup.moshi:moshi:1.12.0'
   implementation "com.squareup.moshi:moshi-kotlin:1.12.0"

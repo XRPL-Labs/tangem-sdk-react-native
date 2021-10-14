@@ -14,7 +14,9 @@ import TangemSdk
 @objc(RNTangemSdk)
 class RNTangemSdk: NSObject {
     private lazy var sdk: TangemSdk = {
-        return TangemSdk()
+        var config = Config()
+        config.attestationMode = .offline
+        return TangemSdk(config: config)
     }()
     
     @objc func scanCard(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
