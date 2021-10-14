@@ -18,6 +18,7 @@ import {
   Modal,
   ScrollView,
   Pressable,
+  Alert,
 } from 'react-native';
 
 import RNTangemSdk from 'tangem-sdk-react-native';
@@ -37,17 +38,20 @@ export default class App extends Component<{}> {
     RNTangemSdk.startSession();
 
     // on nfc state change (Android)
-    RNTangemSdk.on('NFCStateChange', ({enabled}) => {
-      this.setState({
-        status: {
-          enabled,
-          support: true,
-        },
-      });
-    });
+    this.nfcChangeListener = RNTangemSdk.addListener(
+      'NFCStateChange',
+      ({enabled}) => {
+        this.setState({
+          status: {
+            enabled,
+            support: true,
+          },
+        });
+      },
+    );
 
     // get currnet nfc status
-    RNTangemSdk.getNFCStatus().then((status) => {
+    RNTangemSdk.getNFCStatus().then(status => {
       this.setState({
         status,
       });
@@ -55,65 +59,66 @@ export default class App extends Component<{}> {
   }
 
   componentWillUnmount() {
+    // remove nfc listener if exists
+    if (this.nfcChangeListener) {
+      this.nfcChangeListener.remove();
+    }
     // stop the session
     RNTangemSdk.stopSession();
   }
 
-  onSuccess = (r) => {
+  onSuccess = r => {
     this.setState({
       log: JSON.stringify(r, null, '\t'),
     });
   };
 
-  onError = (e) => {
+  onError = e => {
     this.setState({
       log: e.toString(),
     });
   };
 
+  onCardScan = card => {
+    this.setState({
+      card,
+      log: JSON.stringify(card, null, '\t'),
+    });
+  };
+
+  runCommand = (command, options) => {
+    const {card} = this.state;
+
+    if (!card) {
+      Alert.alert('Error', 'Please scan the card first!');
+      return;
+    }
+
+    const {cardId, wallets} = card;
+
+    const commonOptions = {cardId};
+
+    if (wallets && wallets.length > 0) {
+      Object.assign(commonOptions, {walletPublicKey: wallets[0].publicKey});
+    }
+
+    if (options) {
+      Object.assign(commonOptions, options);
+    }
+
+    const fn = RNTangemSdk[command];
+
+    if (typeof fn === 'function') {
+      fn(commonOptions).then(this.onSuccess).catch(this.onError);
+    }
+  };
+
   scanCard = () => {
-    RNTangemSdk.scanCard({
-      onlineVerification: false,
-    })
-      .then(this.onSuccess)
-      .catch(this.onError);
-  };
-
-  verifyCard = () => {
-    RNTangemSdk.verifyCard().then(this.onSuccess).catch(this.onError);
-  };
-
-  createWallet = () => {
-    RNTangemSdk.createWallet().then(this.onSuccess).catch(this.onError);
-  };
-
-  purgeWallet = () => {
-    RNTangemSdk.purgeWallet().then(this.onSuccess).catch(this.onError);
-  };
-
-  changePin1 = () => {
-    // for reset the pinCode set it to '000000'
-    // const pin = '000000';
-    RNTangemSdk.changePin1().then(this.onSuccess).catch(this.onError);
-  };
-
-  changePin2 = () => {
-    // for reset the pinCode set it to '000'
-    // const pin = '000';
-    RNTangemSdk.changePin2().then(this.onSuccess).catch(this.onError);
-  };
-
-  sign = () => {
-    const hashes = [
-      '44617461207573656420666f722068617368696e67',
-      '4461746120666f7220757365642068617368696e67',
-    ];
-
-    RNTangemSdk.sign(hashes).then(this.onSuccess).catch(this.onError);
+    RNTangemSdk.scanCard().then(this.onCardScan).catch(this.onError);
   };
 
   render() {
-    const {log, status} = this.state;
+    const {log, status, card} = this.state;
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -122,34 +127,51 @@ export default class App extends Component<{}> {
             NFC Supported: {status.support.toString()} | NFC Enabled:{' '}
             {status.enabled.toString()}
           </Text>
+          <Text>Card Id: {card?.cardId || 'CARD IS NOT SCANNED!'}</Text>
         </View>
         <View style={styles.row}>
           <TouchableOpacity style={styles.button} onPress={this.scanCard}>
             <Text style={styles.buttonText}>scanCard</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={this.verifyCard}>
-            <Text style={styles.buttonText}>verifyCard</Text>
-          </TouchableOpacity>
         </View>
         <View style={styles.row}>
-          <TouchableOpacity style={styles.button} onPress={this.sign}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={this.runCommand.bind(null, 'sign', {
+              hashes: ['44617461207573656420666f722068617368696e67'],
+            })}>
             <Text style={styles.buttonText}>sign</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.row}>
-          <TouchableOpacity style={styles.button} onPress={this.createWallet}>
-            <Text style={styles.buttonText}>screateWalletign</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={this.runCommand.bind(null, 'createWallet', undefined)}>
+            <Text style={styles.buttonText}>createWallet</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={this.purgeWallet}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={this.runCommand.bind(null, 'purgeWallet', undefined)}>
             <Text style={styles.buttonText}>purgeWallet</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.row}>
-          <TouchableOpacity style={styles.button} onPress={this.changePin1}>
-            <Text style={styles.buttonText}>changePin1</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={this.runCommand.bind(null, 'setAccessCode', undefined)}>
+            <Text style={styles.buttonText}>setAccessCode</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={this.changePin2}>
-            <Text style={styles.buttonText}>changePin2</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={this.runCommand.bind(null, 'setPasscode', undefined)}>
+            <Text style={styles.buttonText}>setPasscode</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.row}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={this.runCommand.bind(null, 'resetUserCodes', undefined)}>
+            <Text style={styles.buttonText}>resetUserCodes</Text>
           </TouchableOpacity>
         </View>
 

@@ -1,4 +1,9 @@
-import { Platform, NativeModules, DeviceEventEmitter } from "react-native";
+import {
+  Platform,
+  NativeModules,
+  DeviceEventEmitter,
+  EmitterSubscription,
+} from "react-native";
 
 import { RNTangemSdkModule, EventCallback, Events } from "./types";
 
@@ -12,28 +17,14 @@ const TangemModuleProxy = {} as RNTangemSdkModule;
  * @param  {String} eventName Name of event NFCStateChange
  * @param  {Function} handler Event handler
  */
-TangemModuleProxy.on = (
+TangemModuleProxy.addListener = (
   eventName: Events,
   handler: (state: EventCallback) => void
-) => {
+): EmitterSubscription | undefined => {
   if (Platform.OS === "android") {
-    DeviceEventEmitter.addListener(eventName, handler);
+    return DeviceEventEmitter.addListener(eventName, handler);
   }
-};
-
-/**
- * Stop listening for event
- * #### (Android specific)
- * @param  {String} eventName Name of event NFCStateChange
- * @param  {Function} handler Event handler
- */
-TangemModuleProxy.removeListener = (
-  eventName: Events,
-  handler: (state: EventCallback) => void
-) => {
-  if (Platform.OS === "android") {
-    DeviceEventEmitter.removeListener(eventName, handler);
-  }
+  return undefined;
 };
 
 /**
@@ -70,46 +61,40 @@ TangemModuleProxy.scanCard = (options = {}) => {
   return RNTangemSdk.scanCard(options);
 };
 /**
- * Verify Card and ensures the card has not been counterfeited.
+ * Create a new wallet on the card
  */
- TangemModuleProxy.verifyCard = (options = {}) => {
-  return RNTangemSdk.verifyCard(options);
-};
-/**
- * create a new wallet on the card
- */
-TangemModuleProxy.createWallet = (options = {}) => {
+TangemModuleProxy.createWallet = (options) => {
   return RNTangemSdk.createWallet(options);
 };
 /**
- * delete all wallet data on the card.
+ * Delete all wallet data on the card.
  */
-TangemModuleProxy.purgeWallet = (options = {}) => {
+TangemModuleProxy.purgeWallet = (options) => {
   return RNTangemSdk.purgeWallet(options);
 };
 /**
  * Sign one or multiple hashes
  */
-TangemModuleProxy.sign = (hashes, options = {}) => {
-  if (!hashes) {
-    throw new Error("hashes argument is required.");
-  }
-  if (!(hashes instanceof Array)) {
-    throw new Error("hashes argument should be array of string!");
-  }
-  return RNTangemSdk.sign(hashes, options);
+TangemModuleProxy.sign = (options) => {
+  return RNTangemSdk.sign(options);
 };
 /**
- * change Pin1 on the card
+ * Change/set accessCode on the card
  */
-TangemModuleProxy.changePin1 = (options = {}) => {
-  return RNTangemSdk.changePin1(options);
+TangemModuleProxy.setAccessCode = (options) => {
+  return RNTangemSdk.setAccessCode(options);
 };
 /**
- * change Pin2 on the card
+ * Change/set passCode on the card
  */
-TangemModuleProxy.changePin2 = (options = {}) => {
-  return RNTangemSdk.changePin2(options);
+TangemModuleProxy.setPasscode = (options) => {
+  return RNTangemSdk.setPasscode(options);
+};
+/**
+ * Reset all user codes on the card
+ */
+TangemModuleProxy.resetUserCodes = (options) => {
+  return RNTangemSdk.resetUserCodes(options);
 };
 
 /* Export ==================================================================== */
