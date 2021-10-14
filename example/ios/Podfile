@@ -26,7 +26,5 @@ target 'example' do
   post_install do |installer|
     react_native_post_install(installer)
     __apply_Xcode_12_5_M1_post_install_workaround(installer)
-    puts 'Disabling Attestation on TangemSdk'
-    system('perl -pi.bak -e  "s/attestCard\(session, completion\)/self.currentAttestationStatus.cardKeyAttestation = .verified\nself.complete(session, completion)/" "Pods/TangemSdk/TangemSdk/TangemSdk/Operations/Attestation/AttestationTask.swift"')
   end
 end
