@@ -339,8 +339,8 @@ PODS:
     - React-perflogger (= 0.66.0)
   - RNTangemSdk (2.0.0):
     - React
-    - TangemSdk (= 3.1.1)
-  - TangemSdk (3.1.1)
+    - TangemSdk (= 3.1.3)
+  - TangemSdk (3.1.3)
   - Yoga (1.14.0)
   - YogaKit (1.18.1):
     - Yoga (~> 1.14)
@@ -526,11 +526,11 @@ SPEC CHECKSUMS:
   React-RCTVibration: 53b92d54b923283638cb0186da7a5c2d2b70a49b
   React-runtimeexecutor: 4bb657a97aa74568d9ed634c8bd478299bb8a3a6
   ReactCommon: eb059748e842a1a86025ebbd4ac9d99e74492f88
-  RNTangemSdk: 97967933f87521b5845e9d7e18dcc9c4bdfd692f
-  TangemSdk: fd937f6b6eed1f3fa87fc7d446f017c960b7f22b
+  RNTangemSdk: 56e214098eaf2b2c69530c69672566c1baa75928
+  TangemSdk: 1a5c49cb7e6a5fda603e938727594b99d1ee5e3a
   Yoga: c11abbf5809216c91fcd62f5571078b83d9b6720
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
 
-PODFILE CHECKSUM: 278a1d5501126947839ffea0faede9c9cb0170eb
+PODFILE CHECKSUM: d99e2d9ec08e76ba22a4df8e19029e4350aef867
 
 COCOAPODS: 1.11.2
