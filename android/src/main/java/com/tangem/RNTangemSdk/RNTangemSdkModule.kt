@@ -84,7 +84,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
     override fun onHostPause() {
         if (::nfcManager.isInitialized) {
-            if (sessionStarted) {
+            if (sessionStarted && nfcManager.reader.listener != null) {
                 nfcManager.onStop()
             }
         }
