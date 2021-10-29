@@ -1,7 +1,7 @@
 {
   "name": "tangem-sdk-react-native",
   "title": "React Native Tangem Sdk",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "React Native Tangem Sdk",
   "types": "dist/index.d.ts",
   "react-native": "dist/index",
