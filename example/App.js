@@ -86,7 +86,7 @@ export default class App extends Component<{}> {
     });
   };
 
-  runCommand = (command, options) => {
+  runCommand = command => {
     const {card} = this.state;
 
     if (!card) {
@@ -94,22 +94,34 @@ export default class App extends Component<{}> {
       return;
     }
 
-    const {cardId, wallets} = card;
+    const {cardId, wallets, supportedCurves} = card;
 
     const commonOptions = {cardId};
 
-    if (wallets && wallets.length > 0) {
-      Object.assign(commonOptions, {walletPublicKey: wallets[0].publicKey});
+    // apply options
+    switch (command) {
+      case 'sign':
+        Object.assign(commonOptions, {
+          hashes: ['44617461207573656420666f722068617368696e67'],
+        });
+        if (wallets && wallets.length > 0) {
+          Object.assign(commonOptions, {walletPublicKey: wallets[0].publicKey});
+        }
+        break;
+      case 'purgeWallet':
+        if (wallets && wallets.length > 0) {
+          Object.assign(commonOptions, {walletPublicKey: wallets[0].publicKey});
+        }
+        break;
+      case 'createWallet':
+        Object.assign(commonOptions, {curve: supportedCurves[0]});
+        break;
     }
 
-    if (options) {
-      Object.assign(commonOptions, options);
-    }
+    const method = RNTangemSdk[command];
 
-    const fn = RNTangemSdk[command];
-
-    if (typeof fn === 'function') {
-      fn(commonOptions).then(this.onSuccess).catch(this.onError);
+    if (typeof method === 'function') {
+      method(commonOptions).then(this.onSuccess).catch(this.onError);
     }
   };
 
@@ -137,33 +149,31 @@ export default class App extends Component<{}> {
         <View style={styles.row}>
           <TouchableOpacity
             style={styles.button}
-            onPress={this.runCommand.bind(null, 'sign', {
-              hashes: ['44617461207573656420666f722068617368696e67'],
-            })}>
+            onPress={this.runCommand.bind(null, 'sign')}>
             <Text style={styles.buttonText}>sign</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.row}>
           <TouchableOpacity
             style={styles.button}
-            onPress={this.runCommand.bind(null, 'createWallet', undefined)}>
+            onPress={this.runCommand.bind(null, 'createWallet')}>
             <Text style={styles.buttonText}>createWallet</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.button}
-            onPress={this.runCommand.bind(null, 'purgeWallet', undefined)}>
+            onPress={this.runCommand.bind(null, 'purgeWallet')}>
             <Text style={styles.buttonText}>purgeWallet</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.row}>
           <TouchableOpacity
             style={styles.button}
-            onPress={this.runCommand.bind(null, 'setAccessCode', undefined)}>
+            onPress={this.runCommand.bind(null, 'setAccessCode')}>
             <Text style={styles.buttonText}>setAccessCode</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.button}
-            onPress={this.runCommand.bind(null, 'setPasscode', undefined)}>
+            onPress={this.runCommand.bind(null, 'setPasscode')}>
             <Text style={styles.buttonText}>setPasscode</Text>
           </TouchableOpacity>
         </View>
