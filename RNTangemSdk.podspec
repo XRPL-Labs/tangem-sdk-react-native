@@ -26,5 +26,5 @@ Pod::Spec.new do |s|
   s.swift_version = '5.0'
 
   s.dependency "React"
-  s.dependency 'TangemSdk', "3.1.3"
+  s.dependency 'TangemSdk', "3.1.4"
 end
