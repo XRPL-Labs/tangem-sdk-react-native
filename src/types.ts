@@ -313,6 +313,10 @@ export interface OptionsSign extends OptionsCommon {
    * Derivation path of the wallet. Optional. COS v. 4.28 and higher,
    */
   derivationPath?: string;
+  /**
+   * @deprecated 'hdPath' has been deprecated, please use 'derivationPath' instead!
+   */
+  hdPath?: string;
 }
 
 export interface OptionsSetAccessCode extends OptionsCommon {
