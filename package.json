@@ -1,7 +1,7 @@
 {
   "name": "tangem-sdk-react-native",
   "title": "React Native Tangem Sdk",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "React Native Tangem Sdk",
   "types": "dist/index.d.ts",
   "react-native": "dist/index",
@@ -43,8 +43,8 @@
   "licenseFilename": "LICENSE",
   "readmeFilename": "README.md",
   "peerDependencies": {
-    "react": "^16.8.1",
-    "react-native": ">=0.60.0-rc.0 <1.0.x"
+    "react": "*",
+    "react-native": "*"
   },
   "devDependencies": {
     "@types/react": "^16.9.19",
