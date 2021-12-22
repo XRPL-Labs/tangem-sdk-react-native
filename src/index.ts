@@ -76,6 +76,16 @@ TangemModuleProxy.purgeWallet = (options) => {
  * Sign one or multiple hashes
  */
 TangemModuleProxy.sign = (options) => {
+  // hdPath is deprecated since version 2.0.4
+  if (Object.prototype.hasOwnProperty.call(options, "hdPath")) {
+    console.warn(
+      `'hdPath' has been deprecated, please use 'derivationPath' instead!`
+    );
+    delete Object.assign(options, { ["derivationPath"]: options["hdPath"] })[
+      "hdPath"
+    ];
+  }
+
   return RNTangemSdk.sign(options);
 };
 /**

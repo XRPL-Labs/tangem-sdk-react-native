@@ -190,7 +190,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
                     hashes = optionsParser.getHashes(),
                     walletPublicKey = optionsParser.getWalletPublicKey(),
                     cardId = optionsParser.getCardId(),
-                    hdPath = optionsParser.getHdPath(),
+                    derivationPath = optionsParser.getDerivationPath(),
                     initialMessage = optionsParser.getInitialMessage()
             ) { handleResult(it, promise) }
         } catch (ex: Exception) {
@@ -452,12 +452,12 @@ class OptionsParser(options: ReadableMap) {
     }
 
 
-    fun getHdPath(): DerivationPath? {
-        val hdPath = options.getString("hdPath")
-        if (hdPath.isNullOrEmpty()) {
+    fun getDerivationPath(): DerivationPath? {
+        val derivationPath = options.getString("derivationPath")
+        if (derivationPath.isNullOrEmpty()) {
             return null;
         }
-        return DerivationPath(rawPath = hdPath)
+        return DerivationPath(rawPath = derivationPath)
     }
 
 

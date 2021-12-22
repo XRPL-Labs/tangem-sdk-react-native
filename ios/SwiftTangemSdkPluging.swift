@@ -70,7 +70,7 @@ class RNTangemSdk: NSObject {
                     hashes: try optionsParser.getHashes(),
                     walletPublicKey: try optionsParser.getWalletPublicKey(),
                     cardId: try optionsParser.getCardId(),
-                    hdPath: optionsParser.getHdPath(),
+                    derivationPath: optionsParser.getDerivationPath(),
                     initialMessage: optionsParser.getInitialMessage()
                 ) { [weak self] result in self?.handleCompletion(result, resolve, reject) }
             } catch OptionsParserError.RquiredArgument(let arg){
@@ -298,8 +298,8 @@ class OptionsParser {
         }
     }
     
-    func getHdPath() -> DerivationPath? {
-        if let path = self.options.object(forKey: "hdPath") as? String {
+    func getDerivationPath() -> DerivationPath? {
+        if let path = self.options.object(forKey: "derivationPath") as? String {
             return try? DerivationPath(rawPath: path)
         }
         return nil
