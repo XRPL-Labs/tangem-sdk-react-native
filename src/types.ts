@@ -26,6 +26,11 @@ export enum AttestationStatus {
   Verified = "verified",
 }
 
+export interface ExtendedPublicKey {
+  publicKey: string;
+  chainCode: string;
+}
+
 export interface CardWallet {
   /**
    *  Wallet's public key.
@@ -54,9 +59,17 @@ export interface CardWallet {
    */
   remainingSignatures?: number;
   /**
-   *  Index of the wallet in the card storage
+   * Index of the wallet in the card storage
    */
   index: number;
+  /**
+   * Does this wallet has a backup
+   */
+  hasBackup: number;
+  /**
+   * Does this wallet has a backup
+   */
+  derivedKeys: ExtendedPublicKey[];
 }
 
 export interface Issuer {
@@ -105,6 +118,30 @@ export interface Settings {
    * All  encryption modes supported by the card
    */
   supportedEncryptionModes: Array<EncryptionMode>;
+  /**
+   * Is allowed to write files
+   */
+  isFilesAllowed: boolean;
+  /**
+   * Is allowed to use hd wallet
+   */
+  isHDWalletAllowed: boolean;
+  /**
+   * Is allowed to delete wallet. COS before v4
+   */
+  isPermanentWallet: boolean;
+  /**
+   * Is overwriting issuer extra data restricted
+   */
+  isOverwritingIssuerExtraDataRestricted: boolean;
+  /**
+   * Is Issuer data protected against replay
+   */
+  isIssuerDataProtectedAgainstReplay: boolean;
+  /**
+   * Is select blockchain allowed
+   */
+  isSelectBlockchainAllowed: boolean;
 }
 
 export interface Manufacturer {
@@ -348,8 +385,21 @@ export interface OptionsResetUserCodes extends OptionsCommon {
   cardId: string;
 }
 
+export interface OptionsStartSession extends OptionsCommon {
+  /**
+   * ScanTask or scanCard method in TangemSdk class will use this mode to attest the card
+   */
+  attestationMode?: "full" | "nomral" | "offline";
+  /**
+   * A card with HD wallets feature enabled will derive keys automatically on "scan" and "createWallet". Repeated items will be ignored
+   * All derived keys will be stored in `Card.Wallet.derivedKeys`.
+   * Only `secp256k1` and `ed25519` supported
+   */
+  defaultDerivationPaths?: string;
+}
+
 export type RNTangemSdkModule = {
-  startSession(): Promise<void>;
+  startSession(options: OptionsStartSession): Promise<void>;
   stopSession(): Promise<void>;
   scanCard(options?: OptionsCommon): Promise<Card>;
   createWallet(options: OptionsCreateWallet): Promise<CreateWalletResponse>;

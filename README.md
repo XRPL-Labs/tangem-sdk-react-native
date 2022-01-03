@@ -177,17 +177,23 @@ The easiest way to use the SDK is to call basic methods. The basic method perfor
 
 When calling basic methods, there is no need to show the error to the user, since it will be displayed on the NFC popup before it's hidden.
 
-#### Start/Stop Session [Android]
+#### Start/Stop Session
 
-Method `RNTangemSdk.startSession()` is needed before running any other method in android, calling this method will ask the user to enable the NFC in case of NFC disabled.
+Method `RNTangemSdk.startSession()` will allow to pass customized SDK config for every session operations.
+
+> calling method is required before running any other method in android, calling this method will ask the user to enable the NFC in case of NFC disabled.
 
 ```js
+const config = {
+  attestationMode: "offline",
+  defaultDerivationPaths: "m/44'/144'/0'/0/0",
+};
 RNTangemSdk.startSession();
 ```
 
 > It's recommended to check for NFC status before running any other method and call this method again in case of disabled NFC
 
-Method `RNTangemSdk.stopSession()` will stop NFC Manager and it's recommended to be called to stop the session.
+Method `RNTangemSdk.stopSession()` will stop NFC Manager and also clear the passed config from `startSession` method and it's recommended to be called to stop the session.
 
 ```js
 RNTangemSdk.stopSession();

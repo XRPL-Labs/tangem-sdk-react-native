@@ -28,24 +28,16 @@ TangemModuleProxy.addListener = (
 };
 
 /**
- * Start Session/NFC Manager and it's recommended to be called before any other command.
- * #### (Android specific)
+ * Start Session and initiat the SDK with passed configs
  */
-TangemModuleProxy.startSession = () => {
-  if (Platform.OS === "android") {
-    return RNTangemSdk.startSession();
-  }
-  return Promise.resolve(null);
+TangemModuleProxy.startSession = (options = {}) => {
+  return RNTangemSdk.startSession(options);
 };
 /**
- * Stop Session/NFC Manager and it's recommended to be called to stop the session.
- * #### (Android specific)
+ * Stop Session
  */
 TangemModuleProxy.stopSession = () => {
-  if (Platform.OS === "android") {
-    return RNTangemSdk.stopSession();
-  }
-  return Promise.resolve(null);
+  return RNTangemSdk.stopSession();
 };
 
 /**
