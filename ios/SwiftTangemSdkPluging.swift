@@ -14,10 +14,50 @@ import TangemSdk
 @objc(RNTangemSdk)
 class RNTangemSdk: NSObject {
     private lazy var sdk: TangemSdk = {
-        var config = Config()
-        config.attestationMode = .offline
-        return TangemSdk(config: config)
+        return TangemSdk()
     }()
+    private var sessionStarted: Bool = false
+    
+    @objc func startSession(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            if (!self.sessionStarted) {
+                let optionsParser = OptionsParser(options: options)
+                // set the config
+                var config = Config()
+                // set default attestationMode
+                if let attestationMode = optionsParser.getAttestationMode() {
+                    config.attestationMode = attestationMode
+                }
+                // set default derivationPaths
+                if let defaultDerivationPath = optionsParser.getDefaultDerivationPath() {
+                    config.defaultDerivationPaths[.secp256k1] = [defaultDerivationPath]
+                }
+                // set the new config to the SDK
+                self.sdk.config = config
+                // set the flag
+                self.sessionStarted = true
+                // resolve promise
+                resolve(nil)
+            }else{
+                reject("ALREADY_STARTED", "session is already started", nil)
+            }
+        }
+    }
+    
+    @objc func stopSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            if(self.sessionStarted){
+                // set the default config for the SDk
+                self.sdk.config =  Config()
+                // set the flag
+                self.sessionStarted = false
+                resolve(nil)
+            }else{
+                reject("ALREADY_STOPPED", "session is already stopped", nil)
+            }
+       
+        }
+    }
     
     @objc func scanCard(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
@@ -200,7 +240,7 @@ fileprivate extension TangemSdkError {
 }
 
 enum OptionsParserError: Error {
-    case RquiredArgument(arg: String)
+    case RquiredArgument(String)
 }
 
 @available(iOS 13.0, *)
@@ -226,13 +266,13 @@ class OptionsParser {
     func getCardId() throws -> String {
         if let cardId = self.options.object(forKey: "cardId") as? String {
             if(cardId.isEmpty){
-                throw OptionsParserError.RquiredArgument(arg: "cardId");
+                throw OptionsParserError.RquiredArgument("cardId");
             }else{
                 return cardId;
             }
         }
         else {
-            throw OptionsParserError.RquiredArgument(arg: "cardId");
+            throw OptionsParserError.RquiredArgument("cardId");
         }
     }
     
@@ -275,32 +315,57 @@ class OptionsParser {
     func getWalletPublicKey() throws -> Data {
         if let walletPublicKey = self.options.object(forKey: "walletPublicKey") as? String {
             if(walletPublicKey.isEmpty){
-                throw OptionsParserError.RquiredArgument(arg: "walletPublicKey");
+                throw OptionsParserError.RquiredArgument("walletPublicKey");
             }else{
                 return Data(hexString: walletPublicKey);
             }
         }
         else {
-            throw OptionsParserError.RquiredArgument(arg: "walletPublicKey");
+            throw OptionsParserError.RquiredArgument("walletPublicKey");
         }
     }
     
     func getHashes() throws -> [Data] {
         if let hashes = self.options.object(forKey: "hashes") as? [String] {
             if(hashes.isEmpty){
-                throw OptionsParserError.RquiredArgument(arg: "hashes");
+                throw OptionsParserError.RquiredArgument("hashes");
             }else{
                 return hashes.compactMap({Data(hexString: $0)})
             }
         }
         else {
-            throw OptionsParserError.RquiredArgument(arg: "hashes");
+            throw OptionsParserError.RquiredArgument("hashes");
         }
     }
     
     func getDerivationPath() -> DerivationPath? {
         if let path = self.options.object(forKey: "derivationPath") as? String {
             return try? DerivationPath(rawPath: path)
+        }
+        return nil
+    }
+    
+    func getAttestationMode() -> AttestationTask.Mode? {
+        if let attestationMode = self.options.object(forKey: "attestationMode") as? String {
+            switch attestationMode {
+            case "offline":
+                return .offline;
+            case "normal":
+                return .normal;
+            case "full":
+                return .full;
+            default:
+                return nil;
+            }
+        }
+        else {
+            return nil;
+        }
+    }
+    
+    func getDefaultDerivationPath() -> DerivationPath? {
+        if let defaultPath = self.options.object(forKey: "defaultDerivationPaths") as? String {
+            return try? DerivationPath(rawPath: defaultPath)
         }
         return nil
     }

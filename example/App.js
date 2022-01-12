@@ -35,7 +35,9 @@ export default class App extends Component<{}> {
 
   componentDidMount() {
     // start the session
-    RNTangemSdk.startSession();
+    RNTangemSdk.startSession({
+      attestationMode: 'offline',
+    });
 
     // on nfc state change (Android)
     this.nfcChangeListener = RNTangemSdk.addListener(
@@ -80,6 +82,7 @@ export default class App extends Component<{}> {
   };
 
   onCardScan = card => {
+    console.log(JSON.stringify(card));
     this.setState({
       card,
       log: JSON.stringify(card, null, '\t'),

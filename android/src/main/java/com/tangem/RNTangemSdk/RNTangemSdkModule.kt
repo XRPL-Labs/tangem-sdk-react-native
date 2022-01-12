@@ -33,7 +33,6 @@ import org.json.JSONObject
 import java.lang.ref.WeakReference
 
 
-
 class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
     private lateinit var nfcManager: NfcManager
     private lateinit var sdk: TangemSdk
@@ -59,7 +58,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
         nfcManager = NfcManager().apply { setCurrentActivity(activity) }
         val cardManagerDelegate = DefaultSessionViewDelegate(nfcManager, nfcManager.reader).apply { this.activity = activity }
         val keyStorage = SecureStorage.create(activity)
-        val config = Config(attestationMode = AttestationTask.Mode.Offline)
+        val config = Config()
 
         sdk = TangemSdk(nfcManager.reader, cardManagerDelegate, keyStorage, config)
     }
@@ -98,21 +97,40 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
 
     @ReactMethod
-    fun startSession(promise: Promise) {
+    fun startSession(options: ReadableMap, promise: Promise) {
         try {
             if (!sessionStarted) {
+                // if session is not started
+                // and nfcManager is initialized
                 if (::nfcManager.isInitialized) {
+                    // set any passed config
+                    val optionsParser = OptionsParser(options)
+                    val config = Config()
+                    // set default attestationMode
+                    val attestationMode = optionsParser.getAttestationMode()
+                    if (attestationMode != null) {
+                        config.attestationMode = attestationMode
+                    }
+
+                    val defaultDerivationPath = optionsParser.getDefaultDerivationPath()
+                    if (defaultDerivationPath != null) {
+                        val defaultDerivationPaths: MutableMap<EllipticCurve, List<DerivationPath>> = mutableMapOf()
+                        defaultDerivationPaths[EllipticCurve.Secp256k1] = listOf(defaultDerivationPath)
+                        config.defaultDerivationPaths = defaultDerivationPaths
+                    }
+                    // set the new config to the SDK
+                    sdk.config = config
+                    // start the nfc manager
                     nfcManager.onStart()
-
+                    // set the flag
                     sessionStarted = true
-
                     promise.resolve(null)
                 } else {
                     promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
                 }
             } else {
                 // session already started
-                promise.resolve(null)
+                promise.reject("ALREADY_STARTED", "session is already started", null)
             }
         } catch (ex: Exception) {
             promise.reject(ex)
@@ -123,18 +141,22 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     fun stopSession(promise: Promise) {
         try {
             if (sessionStarted) {
+                // if session is started
+                // and nfcManager is initialized
                 if (::nfcManager.isInitialized) {
+                    // set the default config for the SDk
+                    sdk.config = Config()
+                    // stop nfcManager
                     nfcManager.onStop()
-
+                    // set the flag
                     sessionStarted = false
-
                     promise.resolve(null)
                 } else {
                     promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
                 }
             } else {
                 // session already stopped
-                promise.resolve(null)
+                promise.reject("ALREADY_STOPPED", "session is already stopped", null)
             }
         } catch (ex: Exception) {
             promise.reject(ex)
@@ -144,99 +166,113 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
     @ReactMethod
     fun scanCard(options: ReadableMap, promise: Promise) {
-        try {
-            val optionsParser = OptionsParser(options)
-            sdk.scanCard(
-                    initialMessage = optionsParser.getInitialMessage()
-            ) { handleResult(it, promise) }
-        } catch (ex: Exception) {
-            handleException(ex, promise)
+        UiThreadUtil.runOnUiThread {
+            try {
+                val optionsParser = OptionsParser(options)
+                sdk.scanCard(
+                        initialMessage = optionsParser.getInitialMessage()
+                ) { handleResult(it, promise) }
+            } catch (ex: Exception) {
+                handleException(ex, promise)
+            }
         }
     }
 
     @ReactMethod
     fun createWallet(options: ReadableMap, promise: Promise) {
-        try {
-            val optionsParser = OptionsParser(options)
-            sdk.createWallet(
-                    curve = optionsParser.getCurve(),
-                    cardId = optionsParser.getCardId(),
-                    initialMessage = optionsParser.getInitialMessage()
-            ) { handleResult(it, promise) }
-        } catch (ex: Exception) {
-            handleException(ex, promise)
+        UiThreadUtil.runOnUiThread {
+            try {
+                val optionsParser = OptionsParser(options)
+                sdk.createWallet(
+                        curve = optionsParser.getCurve(),
+                        cardId = optionsParser.getCardId(),
+                        initialMessage = optionsParser.getInitialMessage()
+                ) { handleResult(it, promise) }
+            } catch (ex: Exception) {
+                handleException(ex, promise)
+            }
         }
     }
 
     @ReactMethod
     fun purgeWallet(options: ReadableMap, promise: Promise) {
-        try {
-            val optionsParser = OptionsParser(options)
-            sdk.purgeWallet(
-                    walletPublicKey = optionsParser.getWalletPublicKey(),
-                    cardId = optionsParser.getCardId(),
-                    initialMessage = optionsParser.getInitialMessage()
-            ) { handleResult(it, promise) }
-        } catch (ex: Exception) {
-            handleException(ex, promise)
+        UiThreadUtil.runOnUiThread {
+            try {
+                val optionsParser = OptionsParser(options)
+                sdk.purgeWallet(
+                        walletPublicKey = optionsParser.getWalletPublicKey(),
+                        cardId = optionsParser.getCardId(),
+                        initialMessage = optionsParser.getInitialMessage()
+                ) { handleResult(it, promise) }
+            } catch (ex: Exception) {
+                handleException(ex, promise)
+            }
         }
     }
 
     @ReactMethod
     fun sign(options: ReadableMap, promise: Promise) {
-        try {
-            val optionsParser = OptionsParser(options)
-            sdk.sign(
-                    hashes = optionsParser.getHashes(),
-                    walletPublicKey = optionsParser.getWalletPublicKey(),
-                    cardId = optionsParser.getCardId(),
-                    derivationPath = optionsParser.getDerivationPath(),
-                    initialMessage = optionsParser.getInitialMessage()
-            ) { handleResult(it, promise) }
-        } catch (ex: Exception) {
-            handleException(ex, promise)
+        UiThreadUtil.runOnUiThread {
+            try {
+                val optionsParser = OptionsParser(options)
+                sdk.sign(
+                        hashes = optionsParser.getHashes(),
+                        walletPublicKey = optionsParser.getWalletPublicKey(),
+                        cardId = optionsParser.getCardId(),
+                        derivationPath = optionsParser.getDerivationPath(),
+                        initialMessage = optionsParser.getInitialMessage()
+                ) { handleResult(it, promise) }
+            } catch (ex: Exception) {
+                handleException(ex, promise)
+            }
         }
     }
 
 
     @ReactMethod
     fun setAccessCode(options: ReadableMap, promise: Promise) {
-        try {
-            val optionsParser = OptionsParser(options)
-            sdk.setAccessCode(
-                    accessCode = optionsParser.getAccessCode(),
-                    cardId = optionsParser.getCardId(),
-                    initialMessage = optionsParser.getInitialMessage()
-            ) { handleResult(it, promise) }
-        } catch (ex: Exception) {
-            handleException(ex, promise)
+        UiThreadUtil.runOnUiThread {
+            try {
+                val optionsParser = OptionsParser(options)
+                sdk.setAccessCode(
+                        accessCode = optionsParser.getAccessCode(),
+                        cardId = optionsParser.getCardId(),
+                        initialMessage = optionsParser.getInitialMessage()
+                ) { handleResult(it, promise) }
+            } catch (ex: Exception) {
+                handleException(ex, promise)
+            }
         }
     }
 
     @ReactMethod
     fun setPasscode(options: ReadableMap, promise: Promise) {
-        try {
-            val optionsParser = OptionsParser(options)
-            sdk.setPasscode(
-                    passcode = optionsParser.getPasscode(),
-                    cardId = optionsParser.getCardId(),
-                    initialMessage = optionsParser.getInitialMessage()
-            ) { handleResult(it, promise) }
-        } catch (ex: Exception) {
-            handleException(ex, promise)
+        UiThreadUtil.runOnUiThread {
+            try {
+                val optionsParser = OptionsParser(options)
+                sdk.setPasscode(
+                        passcode = optionsParser.getPasscode(),
+                        cardId = optionsParser.getCardId(),
+                        initialMessage = optionsParser.getInitialMessage()
+                ) { handleResult(it, promise) }
+            } catch (ex: Exception) {
+                handleException(ex, promise)
+            }
         }
     }
 
     @ReactMethod
     fun resetUserCodes(options: ReadableMap, promise: Promise) {
-        try {
-            val optionsParser = OptionsParser(options)
-            sdk.resetUserCodes(
-                    cardId = optionsParser.getCardId(),
-                    initialMessage = optionsParser.getInitialMessage()
-            ) { handleResult(it, promise) }
-        } catch (ex: Exception) {
-            handleException(ex, promise)
+        UiThreadUtil.runOnUiThread {
+            try {
+                val optionsParser = OptionsParser(options)
+                sdk.resetUserCodes(
+                        cardId = optionsParser.getCardId(),
+                        initialMessage = optionsParser.getInitialMessage()
+                ) { handleResult(it, promise) }
+            } catch (ex: Exception) {
+                handleException(ex, promise)
+            }
         }
     }
 
@@ -431,6 +467,22 @@ class OptionsParser(options: ReadableMap) {
         return cardId
     }
 
+    fun getAccessCode(): String? {
+        val accessCode = options.getString("accessCode")
+        if (accessCode.isNullOrEmpty()) {
+            return null
+        }
+        return accessCode
+    }
+
+    fun getPasscode(): String? {
+        val passcode = options.getString("passcode")
+        if (passcode.isNullOrEmpty()) {
+            return null
+        }
+        return passcode
+    }
+
 
     fun getCurve(): EllipticCurve {
         return when (options.getString("curve")) {
@@ -455,26 +507,29 @@ class OptionsParser(options: ReadableMap) {
     fun getDerivationPath(): DerivationPath? {
         val derivationPath = options.getString("derivationPath")
         if (derivationPath.isNullOrEmpty()) {
-            return null;
+            return null
         }
         return DerivationPath(rawPath = derivationPath)
     }
 
 
-    fun getAccessCode(): String? {
-        val accessCode = options.getString("accessCode")
-        if (accessCode.isNullOrEmpty()) {
-            return null
+    fun getAttestationMode(): AttestationTask.Mode? {
+        return when (options.getString("attestationMode")) {
+            "offline" -> AttestationTask.Mode.Offline
+            "normal" -> AttestationTask.Mode.Normal
+            "full" -> AttestationTask.Mode.Full
+            else -> {
+                null
+            }
         }
-        return accessCode
     }
 
-    fun getPasscode(): String? {
-        val passcode = options.getString("passcode")
-        if (passcode.isNullOrEmpty()) {
+    fun getDefaultDerivationPath(): DerivationPath? {
+        val defaultPath = options.getString("defaultDerivationPaths")
+        if (defaultPath.isNullOrEmpty()) {
             return null
         }
-        return passcode
+        return DerivationPath(rawPath = defaultPath)
     }
 
 
