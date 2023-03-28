@@ -21,9 +21,21 @@ import {
   Alert,
 } from 'react-native';
 
-import RNTangemSdk from 'tangem-sdk-react-native';
+import RNTangemSdk, {Card} from 'tangem-sdk-react-native';
 
-export default class App extends Component<{}> {
+
+interface Props {
+
+}
+
+interface State {
+  card?: Card
+  log?: any
+  status?: any
+}
+export default class App extends Component<Props, State> {
+  private nfcChangeListener: any;
+
   state = {
     card: undefined,
     log: undefined,
@@ -41,15 +53,15 @@ export default class App extends Component<{}> {
 
     // on nfc state change (Android)
     this.nfcChangeListener = RNTangemSdk.addListener(
-      'NFCStateChange',
-      ({enabled}) => {
-        this.setState({
-          status: {
-            enabled,
-            support: true,
-          },
-        });
-      },
+        'NFCStateChange',
+        ({enabled}) => {
+          this.setState({
+            status: {
+              enabled,
+              support: true,
+            },
+          });
+        },
     );
 
     // get currnet nfc status
@@ -69,19 +81,19 @@ export default class App extends Component<{}> {
     RNTangemSdk.stopSession();
   }
 
-  onSuccess = r => {
+  onSuccess = (resp: any) => {
     this.setState({
-      log: JSON.stringify(r, null, '\t'),
+      log: JSON.stringify(resp, null, '\t'),
     });
   };
 
-  onError = e => {
+  onError = (error: Error) => {
     this.setState({
-      log: e.toString(),
+      log: error.toString(),
     });
   };
 
-  onCardScan = card => {
+  onCardScan = (card: Card) => {
     console.log(JSON.stringify(card));
     this.setState({
       card,
@@ -89,7 +101,7 @@ export default class App extends Component<{}> {
     });
   };
 
-  runCommand = command => {
+  runCommand = (command: any) => {
     const {card} = this.state;
 
     if (!card) {
@@ -97,6 +109,7 @@ export default class App extends Component<{}> {
       return;
     }
 
+    // @ts-ignore
     const {cardId, wallets, supportedCurves} = card;
 
     const commonOptions = {cardId};
@@ -121,6 +134,7 @@ export default class App extends Component<{}> {
         break;
     }
 
+    // @ts-ignore
     const method = RNTangemSdk[command];
 
     if (typeof method === 'function') {
@@ -135,80 +149,81 @@ export default class App extends Component<{}> {
   render() {
     const {log, status, card} = this.state;
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>☆RNTangemSdk example☆</Text>
-          <Text>
-            NFC Supported: {status.support.toString()} | NFC Enabled:{' '}
-            {status.enabled.toString()}
-          </Text>
-          <Text>Card Id: {card?.cardId || 'CARD IS NOT SCANNED!'}</Text>
-        </View>
-        <View style={styles.row}>
-          <TouchableOpacity style={styles.button} onPress={this.scanCard}>
-            <Text style={styles.buttonText}>scanCard</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.row}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={this.runCommand.bind(null, 'sign')}>
-            <Text style={styles.buttonText}>sign</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.row}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={this.runCommand.bind(null, 'createWallet')}>
-            <Text style={styles.buttonText}>createWallet</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={this.runCommand.bind(null, 'purgeWallet')}>
-            <Text style={styles.buttonText}>purgeWallet</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.row}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={this.runCommand.bind(null, 'setAccessCode')}>
-            <Text style={styles.buttonText}>setAccessCode</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={this.runCommand.bind(null, 'setPasscode')}>
-            <Text style={styles.buttonText}>setPasscode</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.row}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={this.runCommand.bind(null, 'resetUserCodes', undefined)}>
-            <Text style={styles.buttonText}>resetUserCodes</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={!!log}
-          onRequestClose={() => {
-            this.setState({log: undefined});
-          }}>
-          <View style={styles.modalContainer}>
-            <Pressable
-              style={[styles.buttonClose]}
-              onPress={() => this.setState({log: undefined})}>
-              <Text style={styles.buttonText}>Close</Text>
-            </Pressable>
-            <ScrollView
-              style={styles.modalView}
-              contentContainerStyle={{paddingBottom: 50}}>
-              <Text>{log}</Text>
-            </ScrollView>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>☆RNTangemSdk example☆</Text>
+            <Text>
+              NFC Supported: {status.support.toString()} | NFC Enabled:{' '}
+              {status.enabled.toString()}
+            </Text>
+            {/* @ts-ignore */}
+            <Text>Card Id: {card?.cardId || 'CARD IS NOT SCANNED!'}</Text>
           </View>
-        </Modal>
-      </SafeAreaView>
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.button} onPress={this.scanCard}>
+              <Text style={styles.buttonText}>scanCard</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.row}>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={this.runCommand.bind(null, 'sign')}>
+              <Text style={styles.buttonText}>sign</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.row}>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={this.runCommand.bind(null, 'createWallet')}>
+              <Text style={styles.buttonText}>createWallet</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={this.runCommand.bind(null, 'purgeWallet')}>
+              <Text style={styles.buttonText}>purgeWallet</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.row}>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={this.runCommand.bind(null, 'setAccessCode')}>
+              <Text style={styles.buttonText}>setAccessCode</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={this.runCommand.bind(null, 'setPasscode')}>
+              <Text style={styles.buttonText}>setPasscode</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.row}>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={this.runCommand.bind(null, 'resetUserCodes', undefined)}>
+              <Text style={styles.buttonText}>resetUserCodes</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Modal
+              animationType="slide"
+              transparent={true}
+              visible={!!log}
+              onRequestClose={() => {
+                this.setState({log: undefined});
+              }}>
+            <View style={styles.modalContainer}>
+              <Pressable
+                  style={[styles.buttonClose]}
+                  onPress={() => this.setState({log: undefined})}>
+                <Text style={styles.buttonText}>Close</Text>
+              </Pressable>
+              <ScrollView
+                  style={styles.modalView}
+                  contentContainerStyle={{paddingBottom: 50}}>
+                <Text>{log}</Text>
+              </ScrollView>
+            </View>
+          </Modal>
+        </SafeAreaView>
     );
   }
 }

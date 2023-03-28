@@ -8,6 +8,8 @@ import android.content.IntentFilter
 import android.nfc.NfcAdapter
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
 
@@ -24,6 +26,8 @@ import com.tangem.common.extensions.hexToBytes
 import com.tangem.operations.attestation.AttestationTask
 import com.tangem.tangem_sdk_new.DefaultSessionViewDelegate
 import com.tangem.tangem_sdk_new.extensions.localizedDescription
+import com.tangem.tangem_sdk_new.extensions.initBiometricAuthManager
+import com.tangem.tangem_sdk_new.extensions.initNfcManager
 import com.tangem.tangem_sdk_new.nfc.NfcManager
 import com.tangem.tangem_sdk_new.storage.create
 
@@ -55,12 +59,21 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             return
         }
 
-        nfcManager = NfcManager().apply { setCurrentActivity(activity) }
-        val cardManagerDelegate = DefaultSessionViewDelegate(nfcManager, nfcManager.reader).apply { this.activity = activity }
-        val keyStorage = SecureStorage.create(activity)
         val config = Config()
+        val secureStorage = SecureStorage.create(activity)
+        val nfcManager = TangemSdk.initNfcManager(activity as ComponentActivity)
+        val authManager = TangemSdk.initBiometricAuthManager(activity as FragmentActivity, secureStorage)
 
-        sdk = TangemSdk(nfcManager.reader, cardManagerDelegate, keyStorage, config)
+        val viewDelegate = DefaultSessionViewDelegate(nfcManager, nfcManager.reader, activity)
+        viewDelegate.sdkConfig = config
+
+        sdk = TangemSdk(
+            reader = nfcManager.reader,
+            viewDelegate = viewDelegate,
+            secureStorage = secureStorage,
+            config = config,
+            biometricManager = authManager,
+        )
     }
 
     override fun onHostResume() {
