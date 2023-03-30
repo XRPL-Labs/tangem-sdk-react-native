@@ -1,44 +1,50 @@
 buildscript {
-  // Buildscript is evaluated before everything else so we can't use getExtOrDefault
-  def kotlin_version = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : project.properties['RNTangemSdk_kotlinVersion']
-
-  repositories {
-    google()
-    mavenCentral()
+  ext.getExtOrDefault = {name ->
+    return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['RNTangemSdk_' + name]
   }
 
-  dependencies {
-    classpath("com.android.tools.build:gradle:4.2.2")
-    // noinspection DifferentKotlinGradleVersion
-    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+  // The Android Gradle plugin is only required when opening the android folder stand-alone.
+  // This avoids unnecessary downloads and potential conflicts when the library is included as a
+  // module dependency in an application project.
+  if (project == rootProject) {
+    repositories {
+      google()
+      mavenCentral()
+      maven { url 'https://jitpack.io' }
+    }
+
+    dependencies {
+      classpath "com.android.tools.build:gradle:7.3.1"
+      // noinspection DifferentKotlinGradleVersion
+      classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${getExtOrDefault('kotlinVersion')}"
+    }
+  } else {
+    repositories {
+      mavenCentral()
+    }
+
+    dependencies {
+      // noinspection DifferentKotlinGradleVersion
+      classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${getExtOrDefault('kotlinVersion')}")
+    }
   }
-}
-
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
-
-
-def getExtOrDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['RNTangemSdk_' + name]
 }
 
 def getExtOrIntegerDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties['RNTangemSdk_' + name]).toInteger()
 }
 
-def kotlin_version = getExtOrDefault('kotlinVersion')
-def tangem_sdk_version = getExtOrDefault('tangemSdkVersion')
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 
 android {
   compileSdkVersion getExtOrIntegerDefault('compileSdkVersion')
   buildToolsVersion getExtOrDefault('buildToolsVersion')
   defaultConfig {
-    minSdkVersion 21
+    minSdkVersion getExtOrIntegerDefault('minSdkVersion')
     targetSdkVersion getExtOrIntegerDefault('targetSdkVersion')
     versionCode 1
     versionName "1.0"
-    
   }
   buildTypes {
     release {
@@ -57,71 +63,6 @@ android {
 repositories {
   mavenCentral()
   google()
-
-  def found = false
-  def defaultDir = null
-  def androidSourcesName = 'React Native sources'
-
-  if (rootProject.ext.has('reactNativeAndroidRoot')) {
-    defaultDir = rootProject.ext.get('reactNativeAndroidRoot')
-  } else {
-    defaultDir = new File(
-            projectDir,
-            '/../../../node_modules/react-native/android'
-    )
-  }
-
-  if (defaultDir.exists()) {
-    maven {
-      url defaultDir.toString()
-      name androidSourcesName
-    }
-
-    logger.info(":${project.name}:reactNativeAndroidRoot ${defaultDir.canonicalPath}")
-    found = true
-  } else {
-    def parentDir = rootProject.projectDir
-
-    1.upto(5, {
-      if (found) return true
-      parentDir = parentDir.parentFile
-
-      def androidSourcesDir = new File(
-              parentDir,
-              'node_modules/react-native'
-      )
-
-      def androidPrebuiltBinaryDir = new File(
-              parentDir,
-              'node_modules/react-native/android'
-      )
-
-      if (androidPrebuiltBinaryDir.exists()) {
-        maven {
-          url androidPrebuiltBinaryDir.toString()
-          name androidSourcesName
-        }
-
-        logger.info(":${project.name}:reactNativeAndroidRoot ${androidPrebuiltBinaryDir.canonicalPath}")
-        found = true
-      } else if (androidSourcesDir.exists()) {
-        maven {
-          url androidSourcesDir.toString()
-          name androidSourcesName
-        }
-
-        logger.info(":${project.name}:reactNativeAndroidRoot ${androidSourcesDir.canonicalPath}")
-        found = true
-      }
-    })
-  }
-
-  if (!found) {
-    throw new FileNotFoundException(
-            "${project.name}: unable to locate React Native android sources. " +
-                    "Ensure you have you installed React Native as a dependency in your project and try again."
-    )
-  }
 }
 
 rootProject.allprojects {
@@ -132,14 +73,10 @@ rootProject.allprojects {
 
 dependencies {
   // noinspection GradleDynamicVersion
-  api 'com.facebook.react:react-native:+'
-  implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+  implementation 'com.facebook.react:react-android:+'
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:${getExtOrDefault('kotlinVersion')}"
 
-  // sdk dependencies
-  implementation "com.github.tangem.tangem-sdk-android:android:$tangem_sdk_version"
-  implementation "com.github.tangem.tangem-sdk-android:core:$tangem_sdk_version"
-
-  implementation 'com.squareup.moshi:moshi:1.12.0'
-  implementation "com.squareup.moshi:moshi-kotlin:1.12.0"
-  kapt("com.squareup.moshi:moshi-kotlin-codegen:1.12.0")
+  // tangem sdk dependencies
+  implementation "com.github.tangem.tangem-sdk-android:android:${getExtOrDefault('tangemSdkVersion')}"
+  implementation "com.github.tangem.tangem-sdk-android:core:${getExtOrDefault('tangemSdkVersion')}"
 }
