@@ -8,8 +8,6 @@ import android.content.IntentFilter
 import android.nfc.NfcAdapter
 import android.os.Handler
 import android.os.Looper
-import androidx.activity.ComponentActivity
-import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
 
@@ -26,8 +24,6 @@ import com.tangem.common.extensions.hexToBytes
 import com.tangem.operations.attestation.AttestationTask
 import com.tangem.tangem_sdk_new.DefaultSessionViewDelegate
 import com.tangem.tangem_sdk_new.extensions.localizedDescription
-import com.tangem.tangem_sdk_new.extensions.initBiometricAuthManager
-import com.tangem.tangem_sdk_new.extensions.initNfcManager
 import com.tangem.tangem_sdk_new.nfc.NfcManager
 import com.tangem.tangem_sdk_new.storage.create
 
@@ -37,7 +33,8 @@ import org.json.JSONObject
 import java.lang.ref.WeakReference
 
 
-class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
+class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
     private lateinit var nfcManager: NfcManager
     private lateinit var sdk: TangemSdk
     private val handler = Handler(Looper.getMainLooper())
@@ -59,10 +56,10 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             return
         }
 
+        nfcManager = NfcManager().apply { setCurrentActivity(activity) }
+
         val config = Config()
         val secureStorage = SecureStorage.create(activity)
-        val nfcManager = TangemSdk.initNfcManager(activity as ComponentActivity)
-        val authManager = TangemSdk.initBiometricAuthManager(activity as FragmentActivity, secureStorage)
 
         val viewDelegate = DefaultSessionViewDelegate(nfcManager, nfcManager.reader, activity)
         viewDelegate.sdkConfig = config
@@ -72,7 +69,6 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             viewDelegate = viewDelegate,
             secureStorage = secureStorage,
             config = config,
-            biometricManager = authManager,
         )
     }
 
@@ -84,7 +80,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
                 return
             }
             // if activity destroyed initialize again
-            if (activity.isDestroyed() || activity.isFinishing()) {
+            if (activity.isDestroyed || activity.isFinishing) {
                 initialize()
             } else {
                 if (sessionStarted) {
@@ -127,8 +123,10 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 
                     val defaultDerivationPath = optionsParser.getDefaultDerivationPath()
                     if (defaultDerivationPath != null) {
-                        val defaultDerivationPaths: MutableMap<EllipticCurve, List<DerivationPath>> = mutableMapOf()
-                        defaultDerivationPaths[EllipticCurve.Secp256k1] = listOf(defaultDerivationPath)
+                        val defaultDerivationPaths: MutableMap<EllipticCurve, List<DerivationPath>> =
+                            mutableMapOf()
+                        defaultDerivationPaths[EllipticCurve.Secp256k1] =
+                            listOf(defaultDerivationPath)
                         config.defaultDerivationPaths = defaultDerivationPaths
                     }
                     // set the new config to the SDK
@@ -183,7 +181,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             try {
                 val optionsParser = OptionsParser(options)
                 sdk.scanCard(
-                        initialMessage = optionsParser.getInitialMessage()
+                    initialMessage = optionsParser.getInitialMessage()
                 ) { handleResult(it, promise) }
             } catch (ex: Exception) {
                 handleException(ex, promise)
@@ -197,9 +195,9 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             try {
                 val optionsParser = OptionsParser(options)
                 sdk.createWallet(
-                        curve = optionsParser.getCurve(),
-                        cardId = optionsParser.getCardId(),
-                        initialMessage = optionsParser.getInitialMessage()
+                    curve = optionsParser.getCurve(),
+                    cardId = optionsParser.getCardId(),
+                    initialMessage = optionsParser.getInitialMessage()
                 ) { handleResult(it, promise) }
             } catch (ex: Exception) {
                 handleException(ex, promise)
@@ -213,9 +211,9 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             try {
                 val optionsParser = OptionsParser(options)
                 sdk.purgeWallet(
-                        walletPublicKey = optionsParser.getWalletPublicKey(),
-                        cardId = optionsParser.getCardId(),
-                        initialMessage = optionsParser.getInitialMessage()
+                    walletPublicKey = optionsParser.getWalletPublicKey(),
+                    cardId = optionsParser.getCardId(),
+                    initialMessage = optionsParser.getInitialMessage()
                 ) { handleResult(it, promise) }
             } catch (ex: Exception) {
                 handleException(ex, promise)
@@ -229,11 +227,11 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             try {
                 val optionsParser = OptionsParser(options)
                 sdk.sign(
-                        hashes = optionsParser.getHashes(),
-                        walletPublicKey = optionsParser.getWalletPublicKey(),
-                        cardId = optionsParser.getCardId(),
-                        derivationPath = optionsParser.getDerivationPath(),
-                        initialMessage = optionsParser.getInitialMessage()
+                    hashes = optionsParser.getHashes(),
+                    walletPublicKey = optionsParser.getWalletPublicKey(),
+                    cardId = optionsParser.getCardId(),
+                    derivationPath = optionsParser.getDerivationPath(),
+                    initialMessage = optionsParser.getInitialMessage()
                 ) { handleResult(it, promise) }
             } catch (ex: Exception) {
                 handleException(ex, promise)
@@ -248,9 +246,9 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             try {
                 val optionsParser = OptionsParser(options)
                 sdk.setAccessCode(
-                        accessCode = optionsParser.getAccessCode(),
-                        cardId = optionsParser.getCardId(),
-                        initialMessage = optionsParser.getInitialMessage()
+                    accessCode = optionsParser.getAccessCode(),
+                    cardId = optionsParser.getCardId(),
+                    initialMessage = optionsParser.getInitialMessage()
                 ) { handleResult(it, promise) }
             } catch (ex: Exception) {
                 handleException(ex, promise)
@@ -264,9 +262,9 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             try {
                 val optionsParser = OptionsParser(options)
                 sdk.setPasscode(
-                        passcode = optionsParser.getPasscode(),
-                        cardId = optionsParser.getCardId(),
-                        initialMessage = optionsParser.getInitialMessage()
+                    passcode = optionsParser.getPasscode(),
+                    cardId = optionsParser.getCardId(),
+                    initialMessage = optionsParser.getInitialMessage()
                 ) { handleResult(it, promise) }
             } catch (ex: Exception) {
                 handleException(ex, promise)
@@ -280,15 +278,14 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
             try {
                 val optionsParser = OptionsParser(options)
                 sdk.resetUserCodes(
-                        cardId = optionsParser.getCardId(),
-                        initialMessage = optionsParser.getInitialMessage()
+                    cardId = optionsParser.getCardId(),
+                    initialMessage = optionsParser.getInitialMessage()
                 ) { handleResult(it, promise) }
             } catch (ex: Exception) {
                 handleException(ex, promise)
             }
         }
     }
-
 
     @ReactMethod
     fun getNFCStatus(promise: Promise) {
@@ -312,33 +309,33 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
     }
 
     private fun sendEvent(event: String, payload: WritableMap) {
-        if (reactContext.hasActiveCatalystInstance()) {
+        if (reactContext.hasActiveReactInstance()) {
             reactContext.getJSModule(RCTDeviceEventEmitter::class.java).emit(event, payload)
         }
     }
 
     private val mReceiver: BroadcastReceiver =
-            object : BroadcastReceiver() {
-                override fun onReceive(context: Context?, intent: Intent) {
-                    val action = intent.action
-                    if (action == NfcAdapter.ACTION_ADAPTER_STATE_CHANGED) {
-                        val state = intent.getIntExtra(
-                                NfcAdapter.EXTRA_ADAPTER_STATE, NfcAdapter.STATE_OFF
-                        )
-                        val payload = Arguments.createMap()
-                        when (state) {
-                            NfcAdapter.STATE_OFF -> {
-                                payload.putBoolean("enabled", false)
-                                sendEvent("NFCStateChange", payload)
-                            }
-                            NfcAdapter.STATE_ON -> {
-                                payload.putBoolean("enabled", true)
-                                sendEvent("NFCStateChange", payload)
-                            }
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent) {
+                val action = intent.action
+                if (action == NfcAdapter.ACTION_ADAPTER_STATE_CHANGED) {
+                    val state = intent.getIntExtra(
+                        NfcAdapter.EXTRA_ADAPTER_STATE, NfcAdapter.STATE_OFF
+                    )
+                    val payload = Arguments.createMap()
+                    when (state) {
+                        NfcAdapter.STATE_OFF -> {
+                            payload.putBoolean("enabled", false)
+                            sendEvent("NFCStateChange", payload)
+                        }
+                        NfcAdapter.STATE_ON -> {
+                            payload.putBoolean("enabled", true)
+                            sendEvent("NFCStateChange", payload)
                         }
                     }
                 }
             }
+        }
 
 
     @Throws(JSONException::class)
@@ -410,7 +407,9 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
                 val error = completionResult.error
                 val errorMessage = if (error is TangemSdkError) {
                     val activity = wActivity.get()
-                    if (activity == null) error.customMessage else error.localizedDescription(activity)
+                    if (activity == null) error.customMessage else error.localizedDescription(
+                        activity
+                    )
                 } else {
                     error.customMessage
                 }
@@ -442,7 +441,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) : Rea
 }
 
 
-class RquiredArgumentException(arg: String) : Exception(arg)
+class RequiredArgumentException(arg: String) : Exception(arg)
 
 
 class OptionsParser(options: ReadableMap) {
@@ -459,15 +458,15 @@ class OptionsParser(options: ReadableMap) {
         val header = if (message.hasKey("header")) message.getString("header") else ""
         val body = if (message.hasKey("body")) message.getString("body") else ""
         return Message(
-                header,
-                body
+            header,
+            body
         )
     }
 
     fun getWalletPublicKey(): ByteArray {
         val walletPublicKey = options.getString("walletPublicKey")
         if (walletPublicKey.isNullOrEmpty()) {
-            throw RquiredArgumentException("walletPublicKey is required")
+            throw RequiredArgumentException("walletPublicKey is required")
         }
         return walletPublicKey.hexToBytes()
     }
@@ -475,7 +474,7 @@ class OptionsParser(options: ReadableMap) {
     fun getCardId(): String {
         val cardId = options.getString("cardId")
         if (cardId.isNullOrEmpty()) {
-            throw RquiredArgumentException("cardId is required")
+            throw RequiredArgumentException("cardId is required")
         }
         return cardId
     }
@@ -511,7 +510,7 @@ class OptionsParser(options: ReadableMap) {
     fun getHashes(): Array<ByteArray> {
         val hashes = options.getArray("hashes")
         if (hashes === null || hashes.size() === 0) {
-            throw RquiredArgumentException("hashes is required")
+            throw RequiredArgumentException("hashes is required")
         }
         return hashes.toArrayList().map { it.toString().hexToBytes() }.toTypedArray()
     }
@@ -544,6 +543,4 @@ class OptionsParser(options: ReadableMap) {
         }
         return DerivationPath(rawPath = defaultPath)
     }
-
-
 }

@@ -152,12 +152,12 @@ export default class App extends Component<Props, State> {
         <SafeAreaView style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.title}>☆RNTangemSdk example☆</Text>
-            <Text>
+            <Text style={styles.subTitle}>
               NFC Supported: {status.support.toString()} | NFC Enabled:{' '}
               {status.enabled.toString()}
             </Text>
             {/* @ts-ignore */}
-            <Text>Card Id: {card?.cardId || 'CARD IS NOT SCANNED!'}</Text>
+            <Text style={styles.subTitle}>Card Id: {card?.cardId || 'CARD IS NOT SCANNED!'}</Text>
           </View>
           <View style={styles.row}>
             <TouchableOpacity style={styles.button} onPress={this.scanCard}>
@@ -219,7 +219,7 @@ export default class App extends Component<Props, State> {
               <ScrollView
                   style={styles.modalView}
                   contentContainerStyle={{paddingBottom: 50}}>
-                <Text>{log}</Text>
+                <Text style={styles.logText}>{log}</Text>
               </ScrollView>
             </View>
           </Modal>
@@ -250,10 +250,14 @@ const styles = StyleSheet.create({
     padding: 25,
   },
   title: {
+    color:'black',
     fontWeight: 'bold',
     fontSize: 20,
     textAlign: 'center',
     paddingBottom: 30,
+  },
+  subTitle: {
+    color: 'black'
   },
   row: {
     flexDirection: 'row',
@@ -294,4 +298,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     backgroundColor: '#FF5B5B',
   },
+  logText: {
+    color: 'black'
+  }
 });
