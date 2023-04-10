@@ -49,6 +49,12 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     override fun initialize() {
         super.initialize()
 
+        // initialize SDK
+        initSdk()
+    }
+
+
+    private fun initSdk(){
         val activity = currentActivity
         wActivity = WeakReference(currentActivity)
 
@@ -81,7 +87,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
             }
             // if activity destroyed initialize again
             if (activity.isDestroyed || activity.isFinishing) {
-                initialize()
+                initSdk()
             } else {
                 if (sessionStarted) {
                     nfcManager.onStart()
@@ -108,41 +114,50 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun startSession(options: ReadableMap, promise: Promise) {
         try {
-            if (!sessionStarted) {
-                // if session is not started
-                // and nfcManager is initialized
-                if (::nfcManager.isInitialized) {
-                    // set any passed config
-                    val optionsParser = OptionsParser(options)
-                    val config = Config()
-                    // set default attestationMode
-                    val attestationMode = optionsParser.getAttestationMode()
-                    if (attestationMode != null) {
-                        config.attestationMode = attestationMode
-                    }
-
-                    val defaultDerivationPath = optionsParser.getDefaultDerivationPath()
-                    if (defaultDerivationPath != null) {
-                        val defaultDerivationPaths: MutableMap<EllipticCurve, List<DerivationPath>> =
-                            mutableMapOf()
-                        defaultDerivationPaths[EllipticCurve.Secp256k1] =
-                            listOf(defaultDerivationPath)
-                        config.defaultDerivationPaths = defaultDerivationPaths
-                    }
-                    // set the new config to the SDK
-                    sdk.config = config
-                    // start the nfc manager
-                    nfcManager.onStart()
-                    // set the flag
-                    sessionStarted = true
-                    promise.resolve(null)
-                } else {
-                    promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
-                }
-            } else {
+            if (sessionStarted) {
                 // session already started
                 promise.reject("ALREADY_STARTED", "session is already started", null)
+                return
             }
+
+            // check if SDK id ready to use
+            // sometimes the activity can be null and SDK is not initialized
+            if (!::sdk.isInitialized) {
+                initialize()
+            }
+
+            // double check if sdk is initialized
+            if (!::sdk.isInitialized) {
+                promise.reject("NOT_INITIALIZED", "sdk is not initialized", null)
+                return
+            }
+
+            // set any passed config
+            val optionsParser = OptionsParser(options)
+            val config = Config()
+
+            // set default attestationMode
+            val attestationMode = optionsParser.getAttestationMode()
+            if (attestationMode != null) {
+                config.attestationMode = attestationMode
+            }
+
+            val defaultDerivationPath = optionsParser.getDefaultDerivationPath()
+            if (defaultDerivationPath != null) {
+                val defaultDerivationPaths: MutableMap<EllipticCurve, List<DerivationPath>> =
+                    mutableMapOf()
+                defaultDerivationPaths[EllipticCurve.Secp256k1] =
+                    listOf(defaultDerivationPath)
+                config.defaultDerivationPaths = defaultDerivationPaths
+            }
+            // set the new config to the SDK
+            sdk.config = config
+            // start the nfc manager
+            nfcManager.onStart()
+            // set the flag
+            sessionStarted = true
+
+            promise.resolve(null)
         } catch (ex: Exception) {
             promise.reject(ex)
         }
@@ -151,23 +166,23 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun stopSession(promise: Promise) {
         try {
-            if (sessionStarted) {
-                // if session is started
-                // and nfcManager is initialized
-                if (::nfcManager.isInitialized) {
-                    // set the default config for the SDk
-                    sdk.config = Config()
-                    // stop nfcManager
-                    nfcManager.onStop()
-                    // set the flag
-                    sessionStarted = false
-                    promise.resolve(null)
-                } else {
-                    promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
-                }
-            } else {
+            if (!sessionStarted) {
                 // session already stopped
                 promise.reject("ALREADY_STOPPED", "session is already stopped", null)
+                return
+            }
+            // if session is started
+            // and nfcManager is initialized
+            if (::nfcManager.isInitialized) {
+                // set the default config for the SDk
+                sdk.config = Config()
+                // stop nfcManager
+                nfcManager.onStop()
+                // set the flag
+                sessionStarted = false
+                promise.resolve(null)
+            } else {
+                promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
             }
         } catch (ex: Exception) {
             promise.reject(ex)
