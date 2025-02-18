@@ -8,12 +8,15 @@ import android.content.IntentFilter
 import android.nfc.NfcAdapter
 import android.os.Handler
 import android.os.Looper
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.LifecycleOwner
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter
 
 import com.tangem.TangemSdk
 import com.tangem.Message
-import com.tangem.common.hdWallet.DerivationPath
+import com.tangem.crypto.hdWallet.DerivationPath
 import com.tangem.common.card.EllipticCurve
 import com.tangem.common.core.TangemSdkError
 import com.tangem.common.core.Config
@@ -21,11 +24,17 @@ import com.tangem.common.json.MoshiJsonConverter
 import com.tangem.common.services.secure.SecureStorage
 import com.tangem.common.CompletionResult
 import com.tangem.common.extensions.hexToBytes
+import com.tangem.crypto.bip39.Wordlist
 import com.tangem.operations.attestation.AttestationTask
-import com.tangem.tangem_sdk_new.DefaultSessionViewDelegate
-import com.tangem.tangem_sdk_new.extensions.localizedDescription
-import com.tangem.tangem_sdk_new.nfc.NfcManager
-import com.tangem.tangem_sdk_new.storage.create
+import com.tangem.sdk.DefaultSessionViewDelegate
+import com.tangem.sdk.extensions.getWordlist
+import com.tangem.sdk.extensions.initAuthenticationManager
+import com.tangem.sdk.extensions.initKeystoreManager
+import com.tangem.sdk.extensions.initNfcManager
+import com.tangem.sdk.extensions.localizedDescription
+import com.tangem.sdk.nfc.AndroidNfcAvailabilityProvider
+import com.tangem.sdk.nfc.NfcManager
+import com.tangem.sdk.storage.create
 
 import org.json.JSONArray
 import org.json.JSONException
@@ -34,7 +43,7 @@ import java.lang.ref.WeakReference
 
 
 class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
-    ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
+    NativeTangemSdkModuleSpec(reactContext), LifecycleEventListener {
     private lateinit var nfcManager: NfcManager
     private lateinit var sdk: TangemSdk
     private val handler = Handler(Looper.getMainLooper())
@@ -43,18 +52,19 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     private var sessionStarted = false
 
     override fun getName(): String {
-        return "RNTangemSdk"
+        return REACT_CLASS
     }
 
-    override fun initialize() {
-        super.initialize()
-
-        // initialize SDK
-        initSdk()
+    companion object {
+        const val REACT_CLASS = "RNTangemSdk"
+        lateinit var wActivity: WeakReference<Activity?>
     }
 
+    private val lifecycleowner: LifecycleOwner by lazy {
+        ((reactContext as ReactContext).currentActivity as AppCompatActivity)
+    }
 
-    private fun initSdk(){
+    private fun initSdk() {
         val activity = currentActivity
         wActivity = WeakReference(currentActivity)
 
@@ -62,18 +72,29 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
             return
         }
 
-        nfcManager = NfcManager().apply { setCurrentActivity(activity) }
-
         val config = Config()
-        val secureStorage = SecureStorage.create(activity)
+        val secureStorage = SecureStorage.create(reactContext)
 
-        val viewDelegate = DefaultSessionViewDelegate(nfcManager, nfcManager.reader, activity)
+        nfcManager = TangemSdk.initNfcManager(activity as FragmentActivity)
+        val authenticationManager =
+            TangemSdk.initAuthenticationManager(activity)
+        val keystoreManager =
+            TangemSdk.initKeystoreManager(authenticationManager, secureStorage)
+
+
+        val viewDelegate = DefaultSessionViewDelegate(nfcManager, activity)
         viewDelegate.sdkConfig = config
+
+        val nfcAvailabilityProvider = AndroidNfcAvailabilityProvider(activity)
 
         sdk = TangemSdk(
             reader = nfcManager.reader,
             viewDelegate = viewDelegate,
+            nfcAvailabilityProvider = nfcAvailabilityProvider,
             secureStorage = secureStorage,
+            wordlist = Wordlist.getWordlist(activity),
+            authenticationManager = authenticationManager,
+            keystoreManager = keystoreManager,
             config = config,
         )
     }
@@ -87,10 +108,12 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
             }
             // if activity destroyed initialize again
             if (activity.isDestroyed || activity.isFinishing) {
-                initSdk()
+                activity.runOnUiThread {
+                    initSdk()
+                }
             } else {
                 if (sessionStarted) {
-                    nfcManager.onStart()
+                    nfcManager.onStart(lifecycleowner)
                 }
             }
         }
@@ -98,100 +121,111 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
 
     override fun onHostPause() {
         if (::nfcManager.isInitialized) {
+            val activity = wActivity.get()
+            activity ?: let {
+                return
+            }
             if (sessionStarted && nfcManager.reader.listener != null) {
-                nfcManager.onStop()
+                nfcManager.onStop(lifecycleowner)
             }
         }
     }
 
     override fun onHostDestroy() {
         if (::nfcManager.isInitialized) {
-            nfcManager.onDestroy()
+            val activity = wActivity.get()
+            activity ?: let {
+                return
+            }
+            nfcManager.onDestroy(lifecycleowner)
         }
     }
 
 
     @ReactMethod
-    fun startSession(options: ReadableMap, promise: Promise) {
-        try {
-            if (sessionStarted) {
-                // session already started
-                promise.reject("ALREADY_STARTED", "session is already started", null)
-                return
-            }
+    override fun startSession(options: ReadableMap, promise: Promise) {
+        UiThreadUtil.runOnUiThread {
+            try {
+                if (sessionStarted) {
+                    // session already started
+                    promise.reject("ALREADY_STARTED", "session is already started", null)
+                    return@runOnUiThread
+                }
 
-            // check if SDK id ready to use
-            // sometimes the activity can be null and SDK is not initialized
-            if (!::sdk.isInitialized) {
-                initialize()
-            }
+                // check if SDK is already isInitialized if not initialize it
+                if (!::sdk.isInitialized) {
+                    initSdk()
+                }
 
-            // double check if sdk is initialized
-            if (!::sdk.isInitialized) {
-                promise.reject("NOT_INITIALIZED", "sdk is not initialized", null)
-                return
-            }
+                // double check if sdk is initialized
+                if (!::sdk.isInitialized) {
+                    promise.reject("NOT_INITIALIZED", "sdk is not initialized", null)
+                    return@runOnUiThread
+                }
 
-            // set any passed config
-            val optionsParser = OptionsParser(options)
-            val config = Config()
+                // set any passed config
+                val optionsParser = OptionsParser(options)
+                val config = Config()
 
-            // set default attestationMode
-            val attestationMode = optionsParser.getAttestationMode()
-            if (attestationMode != null) {
-                config.attestationMode = attestationMode
-            }
+                // set attestationMode if provided
+                val attestationMode = optionsParser.getAttestationMode()
+                if (attestationMode != null) {
+                    config.attestationMode = attestationMode
+                }
 
-            val defaultDerivationPath = optionsParser.getDefaultDerivationPath()
-            if (defaultDerivationPath != null) {
-                val defaultDerivationPaths: MutableMap<EllipticCurve, List<DerivationPath>> =
-                    mutableMapOf()
-                defaultDerivationPaths[EllipticCurve.Secp256k1] =
-                    listOf(defaultDerivationPath)
-                config.defaultDerivationPaths = defaultDerivationPaths
-            }
-            // set the new config to the SDK
-            sdk.config = config
-            // start the nfc manager
-            nfcManager.onStart()
-            // set the flag
-            sessionStarted = true
-
-            promise.resolve(null)
-        } catch (ex: Exception) {
-            promise.reject(ex)
-        }
-    }
-
-    @ReactMethod
-    fun stopSession(promise: Promise) {
-        try {
-            if (!sessionStarted) {
-                // session already stopped
-                promise.reject("ALREADY_STOPPED", "session is already stopped", null)
-                return
-            }
-            // if session is started
-            // and nfcManager is initialized
-            if (::nfcManager.isInitialized) {
-                // set the default config for the SDk
-                sdk.config = Config()
-                // stop nfcManager
-                nfcManager.onStop()
+                val defaultDerivationPath = optionsParser.getDefaultDerivationPath()
+                if (defaultDerivationPath != null) {
+                    val defaultDerivationPaths: MutableMap<EllipticCurve, List<DerivationPath>> =
+                        mutableMapOf()
+                    defaultDerivationPaths[EllipticCurve.Secp256k1] =
+                        listOf(defaultDerivationPath)
+                    config.defaultDerivationPaths = defaultDerivationPaths
+                }
+                // set the new config to the SDK
+                sdk.config = config
+                // start the nfc manager
+                nfcManager.onStart(lifecycleowner)
                 // set the flag
-                sessionStarted = false
+                sessionStarted = true
+
                 promise.resolve(null)
-            } else {
-                promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
+            } catch (ex: Exception) {
+                promise.reject(ex)
             }
-        } catch (ex: Exception) {
-            promise.reject(ex)
+        }
+    }
+
+    @ReactMethod
+    override fun stopSession(promise: Promise) {
+        UiThreadUtil.runOnUiThread {
+            try {
+                if (!sessionStarted) {
+                    // session already stopped
+                    promise.reject("ALREADY_STOPPED", "session is already stopped", null)
+                    return@runOnUiThread
+                }
+                // if session is started
+                // and nfcManager is initialized
+                if (::nfcManager.isInitialized) {
+                    // set the default config for the SDk
+                    sdk.config = Config()
+                    // stop nfcManager
+                    nfcManager.onStop(lifecycleowner)
+                    // set the flag
+                    sessionStarted = false
+                    promise.resolve(null)
+                } else {
+                    promise.reject("NOT_INITIALIZED", "nfcManager is not initialized", null)
+                }
+            } catch (ex: Exception) {
+                promise.reject(ex)
+            }
         }
     }
 
 
     @ReactMethod
-    fun scanCard(options: ReadableMap, promise: Promise) {
+    override fun scanCard(options: ReadableMap?, promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val optionsParser = OptionsParser(options)
@@ -205,7 +239,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun createWallet(options: ReadableMap, promise: Promise) {
+    override fun createWallet(options: ReadableMap, promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val optionsParser = OptionsParser(options)
@@ -221,7 +255,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun purgeWallet(options: ReadableMap, promise: Promise) {
+    override fun purgeWallet(options: ReadableMap, promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val optionsParser = OptionsParser(options)
@@ -237,7 +271,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun sign(options: ReadableMap, promise: Promise) {
+    override fun sign(options: ReadableMap, promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val optionsParser = OptionsParser(options)
@@ -256,7 +290,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
 
 
     @ReactMethod
-    fun setAccessCode(options: ReadableMap, promise: Promise) {
+    override fun setAccessCode(options: ReadableMap, promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val optionsParser = OptionsParser(options)
@@ -272,7 +306,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun setPasscode(options: ReadableMap, promise: Promise) {
+    override fun setPasscode(options: ReadableMap, promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val optionsParser = OptionsParser(options)
@@ -288,7 +322,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun resetUserCodes(options: ReadableMap, promise: Promise) {
+    override fun resetUserCodes(options: ReadableMap, promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val optionsParser = OptionsParser(options)
@@ -303,7 +337,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun getNFCStatus(promise: Promise) {
+    override fun getNFCStatus(promise: Promise) {
         val nfcAdapter = NfcAdapter.getDefaultAdapter(reactContext)
 
         val payload = Arguments.createMap()
@@ -343,6 +377,7 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
                             payload.putBoolean("enabled", false)
                             sendEvent("NFCStateChange", payload)
                         }
+
                         NfcAdapter.STATE_ON -> {
                             payload.putBoolean("enabled", true)
                             sendEvent("NFCStateChange", payload)
@@ -415,10 +450,11 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
 
     private fun handleResult(completionResult: CompletionResult<*>, promise: Promise) {
         when (completionResult) {
-            is CompletionResult.Success<*> -> {
+            is CompletionResult.Success -> {
                 handler.post { promise.resolve(normalizeResponse(completionResult.data)) }
             }
-            is CompletionResult.Failure<*> -> {
+
+            is CompletionResult.Failure -> {
                 val error = completionResult.error
                 val errorMessage = if (error is TangemSdkError) {
                     val activity = wActivity.get()
@@ -448,22 +484,15 @@ class RNTangemSdkModule(private val reactContext: ReactApplicationContext) :
         val filter = IntentFilter(NfcAdapter.ACTION_ADAPTER_STATE_CHANGED)
         reactContext.registerReceiver(mReceiver, filter)
     }
-
-
-    companion object {
-        lateinit var wActivity: WeakReference<Activity?>
-    }
 }
 
 
 class RequiredArgumentException(arg: String) : Exception(arg)
 
 
-class OptionsParser(options: ReadableMap) {
-    val options: ReadableMap = options
-
+class OptionsParser(private val options: ReadableMap?) {
     fun getInitialMessage(): Message? {
-        if (!options.hasKey("initialMessage")) return null
+        if (!options?.hasKey("initialMessage")!!) return null
 
         if (options.getMap("initialMessage") !is ReadableMap) {
             return null
@@ -479,7 +508,7 @@ class OptionsParser(options: ReadableMap) {
     }
 
     fun getWalletPublicKey(): ByteArray {
-        val walletPublicKey = options.getString("walletPublicKey")
+        val walletPublicKey = options?.getString("walletPublicKey")
         if (walletPublicKey.isNullOrEmpty()) {
             throw RequiredArgumentException("walletPublicKey is required")
         }
@@ -487,7 +516,7 @@ class OptionsParser(options: ReadableMap) {
     }
 
     fun getCardId(): String {
-        val cardId = options.getString("cardId")
+        val cardId = options?.getString("cardId")
         if (cardId.isNullOrEmpty()) {
             throw RequiredArgumentException("cardId is required")
         }
@@ -495,7 +524,7 @@ class OptionsParser(options: ReadableMap) {
     }
 
     fun getAccessCode(): String? {
-        val accessCode = options.getString("accessCode")
+        val accessCode = options?.getString("accessCode")
         if (accessCode.isNullOrEmpty()) {
             return null
         }
@@ -503,7 +532,7 @@ class OptionsParser(options: ReadableMap) {
     }
 
     fun getPasscode(): String? {
-        val passcode = options.getString("passcode")
+        val passcode = options?.getString("passcode")
         if (passcode.isNullOrEmpty()) {
             return null
         }
@@ -512,7 +541,7 @@ class OptionsParser(options: ReadableMap) {
 
 
     fun getCurve(): EllipticCurve {
-        return when (options.getString("curve")) {
+        return when (options?.getString("curve")) {
             "ed25519" -> EllipticCurve.Ed25519
             "secp256k1" -> EllipticCurve.Secp256k1
             "secp256r1" -> EllipticCurve.Secp256r1
@@ -523,7 +552,7 @@ class OptionsParser(options: ReadableMap) {
     }
 
     fun getHashes(): Array<ByteArray> {
-        val hashes = options.getArray("hashes")
+        val hashes = options?.getArray("hashes")
         if (hashes === null || hashes.size() === 0) {
             throw RequiredArgumentException("hashes is required")
         }
@@ -532,7 +561,7 @@ class OptionsParser(options: ReadableMap) {
 
 
     fun getDerivationPath(): DerivationPath? {
-        val derivationPath = options.getString("derivationPath")
+        val derivationPath = options?.getString("derivationPath")
         if (derivationPath.isNullOrEmpty()) {
             return null
         }
@@ -541,7 +570,7 @@ class OptionsParser(options: ReadableMap) {
 
 
     fun getAttestationMode(): AttestationTask.Mode? {
-        return when (options.getString("attestationMode")) {
+        return when (options?.getString("attestationMode")) {
             "offline" -> AttestationTask.Mode.Offline
             "normal" -> AttestationTask.Mode.Normal
             "full" -> AttestationTask.Mode.Full
@@ -552,7 +581,7 @@ class OptionsParser(options: ReadableMap) {
     }
 
     fun getDefaultDerivationPath(): DerivationPath? {
-        val defaultPath = options.getString("defaultDerivationPaths")
+        val defaultPath = options?.getString("defaultDerivationPaths")
         if (defaultPath.isNullOrEmpty()) {
             return null
         }
