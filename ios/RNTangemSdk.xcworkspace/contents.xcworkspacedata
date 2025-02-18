@@ -2,6 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:/Users/ava/Desktop/Projects/tangem-sdk-react-native/ios/RNTangemSdk.xcodeproj">
+      location = "absolute:/Users/ava/Desktop/Projects/tangem-sdk-react-native/ios/RNTangemSdk.xcodeproj">
    </FileRef>
 </Workspace>

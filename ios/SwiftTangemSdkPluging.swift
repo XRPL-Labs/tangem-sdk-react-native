@@ -9,16 +9,13 @@ import Foundation
 import CoreNFC
 import TangemSdk
 
-
-@available(iOS 13.0, *)
-@objc(RNTangemSdk)
-class RNTangemSdk: NSObject {
+@objc public class SwiftTangemSdkPlugin: NSObject {
     private lazy var sdk: TangemSdk = {
         return TangemSdk()
     }()
     private var sessionStarted: Bool = false
     
-    @objc func startSession(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func startSession(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             if (!self.sessionStarted) {
                 let optionsParser = OptionsParser(options: options)
@@ -44,7 +41,7 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    @objc func stopSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func stopSession(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             if(self.sessionStarted){
                 // set the default config for the SDk
@@ -59,7 +56,7 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    @objc func scanCard(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func scanCard(_ options: NSDictionary?, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             let optionsParser = OptionsParser(options: options)
             self.sdk.scanCard (
@@ -68,7 +65,7 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    @objc func createWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func createWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             do{
                 let optionsParser = OptionsParser(options: options)
@@ -85,7 +82,7 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    @objc func purgeWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func purgeWallet(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             do{
                 let optionsParser = OptionsParser(options: options)
@@ -102,7 +99,7 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    @objc func sign(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func sign(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             do{
                 let optionsParser = OptionsParser(options: options)
@@ -121,7 +118,7 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    @objc func setAccessCode(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func setAccessCode(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             do{
                 let optionsParser = OptionsParser(options: options)
@@ -138,7 +135,7 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    @objc func setPasscode(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func setPasscode(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             do{
                 let optionsParser = OptionsParser(options: options)
@@ -155,7 +152,7 @@ class RNTangemSdk: NSObject {
         }
     }
     
-    @objc func resetUserCodes(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func resetUserCodes(_ options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             do{
                 let optionsParser = OptionsParser(options: options)
@@ -172,7 +169,7 @@ class RNTangemSdk: NSObject {
     }
     
     
-    @objc func getNFCStatus(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    @objc public func getNFCStatus(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         DispatchQueue.main.async {
             var isNFCAvailable: Bool {
                 if NSClassFromString("NFCNDEFReaderSession") == nil { return false }
@@ -245,15 +242,15 @@ enum OptionsParserError: Error {
 
 @available(iOS 13.0, *)
 class OptionsParser {
-    var options: NSDictionary
+    var options: NSDictionary?
     
-    init(options: NSDictionary) {
+    init(options: NSDictionary?) {
         self.options = options
     }
     
     
     func getInitialMessage() -> Message? {
-        let message = self.options.object(forKey: "initialMessage") as? NSDictionary
+        let message = self.options?.object(forKey: "initialMessage") as? NSDictionary
         if let unwrappedMessage = message {
             return Message(
                 header: unwrappedMessage.object(forKey: "header") as? String,
@@ -264,7 +261,7 @@ class OptionsParser {
     }
     
     func getCardId() throws -> String {
-        if let cardId = self.options.object(forKey: "cardId") as? String {
+        if let cardId = self.options?.object(forKey: "cardId") as? String {
             if(cardId.isEmpty){
                 throw OptionsParserError.RquiredArgument("cardId");
             }else{
@@ -277,7 +274,7 @@ class OptionsParser {
     }
     
     func getPasscode() -> String? {
-        if let passcode = self.options.object(forKey: "passcode") as? String {
+        if let passcode = self.options?.object(forKey: "passcode") as? String {
             return passcode;
         }
         else {
@@ -286,7 +283,7 @@ class OptionsParser {
     }
     
     func getAccessCode() -> String? {
-        if let accessCode = self.options.object(forKey: "accessCode") as? String {
+        if let accessCode = self.options?.object(forKey: "accessCode") as? String {
             return accessCode;
         }
         else {
@@ -295,7 +292,7 @@ class OptionsParser {
     }
     
     func getCurve() -> EllipticCurve {
-        if let curve = self.options.object(forKey: "curve") as? String {
+        if let curve = self.options?.object(forKey: "curve") as? String {
             switch curve {
             case "ed25519":
                 return EllipticCurve.ed25519;
@@ -313,7 +310,7 @@ class OptionsParser {
     }
     
     func getWalletPublicKey() throws -> Data {
-        if let walletPublicKey = self.options.object(forKey: "walletPublicKey") as? String {
+        if let walletPublicKey = self.options?.object(forKey: "walletPublicKey") as? String {
             if(walletPublicKey.isEmpty){
                 throw OptionsParserError.RquiredArgument("walletPublicKey");
             }else{
@@ -326,7 +323,7 @@ class OptionsParser {
     }
     
     func getHashes() throws -> [Data] {
-        if let hashes = self.options.object(forKey: "hashes") as? [String] {
+        if let hashes = self.options?.object(forKey: "hashes") as? [String] {
             if(hashes.isEmpty){
                 throw OptionsParserError.RquiredArgument("hashes");
             }else{
@@ -339,14 +336,14 @@ class OptionsParser {
     }
     
     func getDerivationPath() -> DerivationPath? {
-        if let path = self.options.object(forKey: "derivationPath") as? String {
+        if let path = self.options?.object(forKey: "derivationPath") as? String {
             return try? DerivationPath(rawPath: path)
         }
         return nil
     }
     
     func getAttestationMode() -> AttestationTask.Mode? {
-        if let attestationMode = self.options.object(forKey: "attestationMode") as? String {
+        if let attestationMode = self.options?.object(forKey: "attestationMode") as? String {
             switch attestationMode {
             case "offline":
                 return .offline;
@@ -364,7 +361,7 @@ class OptionsParser {
     }
     
     func getDefaultDerivationPath() -> DerivationPath? {
-        if let defaultPath = self.options.object(forKey: "defaultDerivationPaths") as? String {
+        if let defaultPath = self.options?.object(forKey: "defaultDerivationPaths") as? String {
             return try? DerivationPath(rawPath: defaultPath)
         }
         return nil

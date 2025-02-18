@@ -9,22 +9,23 @@ Pod::Spec.new do |s|
   s.description  = <<-DESC
                   RNTangemSdk
                    DESC
-  s.homepage     = "https://github.com/XRPL-Labs/tangem-sdk-react-native"
-  # brief license entry:
-  s.license      = "MIT"
-  # optional - use expanded license entry instead:
-  # s.license    = { :type => "MIT", :file => "LICENSE" }
-  s.authors      = { "N3TC4T" => "netcat.av@gmail.com" }
-  s.platforms    = { :ios => "13.0" }
-  s.source       = { :git => "https://github.com/XRPL-Labs/tangem-sdk-react-native.git", :tag => "#{s.version}" }
-
-  s.source_files = "ios/**/*.{h,c,m,swift}"
-  s.requires_arc = true
+  s.homepage     = package["repository"]["baseUrl"]
+  s.license      = package["license"]
+  s.author       = package["author"]
+  
+  s.platforms    = { :ios => "15.1" }
+  s.source       = { :git => package["repository"]["url"], :tag => "#{s.version}" }
+  
+  s.source_files = "ios/**/*.{h,m,mm,swift}"
+  
+  # some platform settings
   s.platform = :ios
-  s.ios.deployment_target = '13.0'
-
+  s.ios.deployment_target = '15.1'
   s.swift_version = '5.0'
-
-  s.dependency "React"
-  s.dependency 'TangemSdk', "3.4.0"
+  
+  # deps
+  s.dependency 'TangemSdk', "3.11.0"
+  # new archt deps
+  install_modules_dependencies(s)
+  
 end

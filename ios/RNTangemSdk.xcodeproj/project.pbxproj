@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A20B90902567C0E00066FECA /* SwiftTangemSdkPluging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20B908F2567C0E00066FECA /* SwiftTangemSdkPluging.swift */; };
+		A2A738782D63436C00D6C4B6 /* RNTangemSdk.mm in Sources */ = {isa = PBXBuildFile; fileRef = A2A738762D63436C00D6C4B6 /* RNTangemSdk.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,6 +27,8 @@
 		134814201AA4EA6300B7C361 /* libRNTangemSdk.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRNTangemSdk.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20B908E2567C0DF0066FECA /* RNTangemSdk-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RNTangemSdk-Bridging-Header.h"; sourceTree = "<group>"; };
 		A20B908F2567C0E00066FECA /* SwiftTangemSdkPluging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftTangemSdkPluging.swift; sourceTree = "<group>"; };
+		A2A738752D63436C00D6C4B6 /* RNTangemSdk.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNTangemSdk.h; sourceTree = "<group>"; };
+		A2A738762D63436C00D6C4B6 /* RNTangemSdk.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RNTangemSdk.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,9 +53,11 @@
 		58B511D21A9E6C8500147676 = {
 			isa = PBXGroup;
 			children = (
+				A2A738752D63436C00D6C4B6 /* RNTangemSdk.h */,
+				A2A738762D63436C00D6C4B6 /* RNTangemSdk.mm */,
 				A20B908F2567C0E00066FECA /* SwiftTangemSdkPluging.swift */,
-				134814211AA4EA7D00B7C361 /* Products */,
 				A20B908E2567C0DF0066FECA /* RNTangemSdk-Bridging-Header.h */,
+				134814211AA4EA7D00B7C361 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -114,6 +119,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A2A738782D63436C00D6C4B6 /* RNTangemSdk.mm in Sources */,
 				A20B90902567C0E00066FECA /* SwiftTangemSdkPluging.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
