@@ -2,7 +2,6 @@
 //  Empty.swift
 //  example
 //
-//  Created by XRPL Labs on 28/03/2023.
+//  Created by XRPL Labs on 17/02/2025.
 //
 
-import Foundation

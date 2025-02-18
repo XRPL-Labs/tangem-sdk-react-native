@@ -26,10 +26,10 @@ class RNTangemSdkPackage : BaseReactPackage() {
             moduleInfos[RNTangemSdkModule.REACT_CLASS] = ReactModuleInfo(
                 RNTangemSdkModule.REACT_CLASS,
                 RNTangemSdkModule.REACT_CLASS,
-                canOverrideExistingModule = false,  // canOverrideExistingModule
-                needsEagerInit = false,  // needsEagerInit
-                isCxxModule = false,  // isCxxModule
-                isTurboModule = isTurboModule // isTurboModule
+                false,  // canOverrideExistingModule
+                false,  // needsEagerInit
+                false,  // isCxxModule
+                isTurboModule // isTurboModule
             )
             moduleInfos
         }
